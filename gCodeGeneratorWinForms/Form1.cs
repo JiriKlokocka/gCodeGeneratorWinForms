@@ -364,10 +364,23 @@ namespace gCodeGeneratorWinForms
             {
                 if (seg.IsArc)
                 {
-                    var cScreen = ToScreen(seg.Center);
-                    float rScreen = seg.Radius * scale;
-                    var rect = new RectangleF(cScreen.X - rScreen, cScreen.Y - rScreen, rScreen * 2, rScreen * 2);
-                    g.DrawArc(arcPen, rect, seg.StartAngle, seg.SweepAngle);
+                    // Convert arc to polyline — avoids GDI+ angle/flip issues
+                    int steps = 32;
+                    double startRad = seg.StartAngle * Math.PI / 180.0;
+                    double sweepRad = seg.SweepAngle * Math.PI / 180.0;
+                    PointF? prev = null;
+
+                    for (int s = 0; s <= steps; s++)
+                    {
+                        double angle = startRad + sweepRad * s / steps;
+                        float px = seg.Center.X + seg.Radius * (float)Math.Cos(angle);
+                        float pz = seg.Center.Y + seg.Radius * (float)Math.Sin(angle);
+                        PointF cur = ToScreen(new PointF(px, pz));
+
+                        if (prev.HasValue)
+                            g.DrawLine(arcPen, prev.Value, cur);
+                        prev = cur;
+                    }
                 }
                 else
                 {
