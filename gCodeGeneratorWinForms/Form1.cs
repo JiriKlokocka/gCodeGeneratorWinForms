@@ -258,10 +258,21 @@ namespace gCodeGeneratorWinForms
 
                     float startAngle = (float)(Math.Atan2(z - cz, x - cx) * 180.0 / Math.PI);
                     float endAngle = (float)(Math.Atan2(newZ - cz, newX - cx) * 180.0 / Math.PI);
+
+                    
+                    
                     float sweep = endAngle - startAngle;
 
-                    if (isArcCW && sweep > 0) sweep -= 360;
-                    if (isArcCCW && sweep < 0) sweep += 360;
+                    //Original code
+                    //if (isArcCW && sweep > 0) sweep -= 360;
+                    //if (isArcCCW && sweep < 0) sweep += 360;
+
+                    //New Code
+                    if (sweep < 0)
+                    {
+                        sweep = startAngle - endAngle;
+                        sweep -= 180;
+                    }
 
                     segments.Add(new Segment
                     {
