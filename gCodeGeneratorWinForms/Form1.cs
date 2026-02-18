@@ -207,18 +207,32 @@ namespace gCodeGeneratorWinForms
                 if (double.Parse(txtInitialDiameter.Text, CI) >= p.TargetDiameter)
                 {
                     p.InitialDiameter = double.Parse(txtInitialDiameter.Text, CI);
-                    //txtInitialDiameter.BackColor = Color.FromArgb(0, 255, 100, 100); 
+                    txtInitialDiameter.BackColor = this.BackColor;
                 } else
                 {
-                    txtInitialDiameter.BackColor = Color.FromArgb(155, 255, 100, 100);
+                    txtInitialDiameter.BackColor = Color.FromArgb(255, 255, 100, 100);
                 }
                 //Check if target diameter is smaller than initial diameter
-                if (double.Parse(txtTargetDiameter.Text, CI) >= p.TargetDiameter)
+                if (double.Parse(txtTargetDiameter.Text, CI) <= p.InitialDiameter)
                 {
                     p.TargetDiameter = double.Parse(txtTargetDiameter.Text, CI);
+                    txtTargetDiameter.BackColor = this.BackColor;
                 }
-                
-                p.Cut = double.Parse(txtCut.Text, CI);
+                else
+                {
+                    txtTargetDiameter.BackColor = Color.FromArgb(255, 255, 100, 100);
+                }
+
+                if (double.Parse(txtCut.Text, CI) >= 0.01)
+                {
+                    p.Cut = double.Parse(txtCut.Text, CI);
+                    txtCut.BackColor = this.BackColor;
+                }
+                else {                     
+                    txtCut.BackColor = Color.FromArgb(255, 255, 100, 100);
+                }
+
+
                 p.RoughFeed = double.Parse(txtRoughFeed.Text, CI);
                 p.FinishFeed = double.Parse(txtFinishFeed.Text, CI);
                 p.LeftRadius = double.Parse(txtLeftRadius.Text, CI);
@@ -246,11 +260,7 @@ namespace gCodeGeneratorWinForms
                 }
 
                 //
-                if (p.Cut <= 0)
-                {
-                    p.Cut = 0.1; // default to 0.1mm cut if invalid value is entered
-                    txtCut.Text = p.Cut.ToString(CI);
-                }
+              
 
                 // If AutoRadies is enabled, set left and right radius to maximum possible values based on dimensions, and disable manual input
                 if (p.AutoRadies)
