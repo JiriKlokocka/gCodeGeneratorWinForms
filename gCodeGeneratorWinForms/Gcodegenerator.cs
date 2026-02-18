@@ -25,6 +25,7 @@ namespace gCodeGeneratorWinForms
         public double RightRadius { get; set; } = 5.0;
         public bool RightChamfer { get; set; } = false;
         public bool AutoRadies { get; set; } = false;
+        public bool ShowArrows { get; set; } = true;
 
         public int LastCutTest { get; set; } = 1;
         public double Clear { get; set; } = 5.0;

@@ -35,6 +35,7 @@
             chkLeftChamfer = new CheckBox();
             chkRightChamfer = new CheckBox();
             chkAutoRadii = new CheckBox();
+            chkShowArrows = new CheckBox();
             ((System.ComponentModel.ISupportInitialize)splitMain).BeginInit();
             splitMain.Panel1.SuspendLayout();
             splitMain.Panel2.SuspendLayout();
@@ -228,6 +229,13 @@
             chkAutoRadii.Size = new Size(104, 24);
             chkAutoRadii.TabIndex = 0;
             // 
+            // chkShowArrows
+            // 
+            chkShowArrows.Location = new Point(0, 0);
+            chkShowArrows.Name = "chkAutoRadii";
+            chkShowArrows.Size = new Size(104, 24);
+            chkShowArrows.TabIndex = 0;
+            // 
             // Form1
             // 
             BackColor = Color.FromArgb(37, 37, 38);
@@ -257,7 +265,7 @@
         private TextBox txtLength, txtInitialDiameter, txtTargetDiameter;
         private TextBox txtCut, txtRoughFeed, txtFinishFeed;
         private TextBox txtLeftRadius, txtRightRadius, txtClear, txtFileName;
-        private CheckBox chkLeftChamfer, chkRightChamfer, chkAutoRadii;
+        private CheckBox chkLeftChamfer, chkRightChamfer, chkAutoRadii, chkShowArrows;
         private Label lblMaxLeftRadius, lblMaxRightRadius;
     }
 }

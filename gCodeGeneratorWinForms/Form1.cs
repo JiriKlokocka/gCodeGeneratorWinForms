@@ -9,7 +9,9 @@ namespace gCodeGeneratorWinForms
         // ─── TOOLPATH SEGMENTS FOR DRAWING ───────────────────────────────────
         private enum MoveType { Rapid, Feed, Arc }
         
-        private System.Drawing.Drawing2D.AdjustableArrowCap arrow = new System.Drawing.Drawing2D.AdjustableArrowCap(4, 4);
+        
+
+        private TurningParameters parameters =  new TurningParameters();
 
         private class Segment
         {
@@ -153,6 +155,7 @@ namespace gCodeGeneratorWinForms
             AddHeader("── Other ──");
             AddRow("Clearance (mm)", txtClear, "5");
             AddCheck(chkAutoRadii, "Auto left and right radies");
+            AddCheck(chkShowArrows, "Show arrows in graphic");
 
             // ─ Output ────────────────────────────────────────────────────────
             AddHeader("── Output ──");
@@ -240,14 +243,13 @@ namespace gCodeGeneratorWinForms
                 p.RightRadius = double.Parse(txtRightRadius.Text, CI);
                 p.RightChamfer = chkRightChamfer.Checked;
                 p.AutoRadies = chkAutoRadii.Checked;
+                p.ShowArrows = chkShowArrows.Checked;
                 p.Clear = double.Parse(txtClear.Text, CI);
                 p.FileName = txtFileName.Text;
 
                 var maxLeftRadius = ((p.InitialDiameter - p.TargetDiameter) / 2);
                 var maxRightRadiusPositive = (p.TargetDiameter / 2);
                 var maxRightRadiusNegative = -((p.InitialDiameter - p.TargetDiameter) / 2);
-
-               
 
                 //For short parts, the radius cannot be larger than half the length, otherwise it would create a full circle or more
                 if (maxLeftRadius > (p.Length/2)) {
@@ -290,7 +292,7 @@ namespace gCodeGeneratorWinForms
 
                 lblMaxLeftRadius.Text = $"(max: {maxLeftRadius:0.###})";   
                 lblMaxRightRadius.Text = $"(max: {maxRightRadiusPositive:0.###} / {maxRightRadiusNegative:0.###})";
-
+                parameters = p;
                 return true;
             }
             catch { return false; }
@@ -355,7 +357,7 @@ namespace gCodeGeneratorWinForms
                     
                     float sweep = endAngle - startAngle;
 
-                    //Original code
+                    //Original Claude code
                     //if (isArcCW && sweep > 0) sweep -= 360;
                     //if (isArcCCW && sweep < 0) sweep += 360;
 
@@ -454,23 +456,24 @@ namespace gCodeGeneratorWinForms
             using var xAxisPen = new Pen(Color.FromArgb(55, 255, 255, 0), 3f);
             using var zAxisPen = new Pen(Color.FromArgb(55, 255, 255, 0), 3f);
             // X=0 centerline — horizontal line across full width
-            //g.DrawLine(xAxisPen, ToScreen(new PointF(0, minZ - 2)), ToScreen(new PointF(0, maxZ + 2)));
+            g.DrawLine(xAxisPen, ToScreen(new PointF(0, minZ - 2)), ToScreen(new PointF(0, maxZ + 2)));
             // Z=0 vertical line — full height
-            //g.DrawLine(zAxisPen, ToScreen(new PointF(minX - 1, 0)), ToScreen(new PointF(maxX + 1, 0)));
+            g.DrawLine(zAxisPen, ToScreen(new PointF(minX - 1, 0)), ToScreen(new PointF(maxX + 1, 0)));
 
             // ── Toolpath ─────────────────────────────────────────────────────
-            
+            var arrow = new System.Drawing.Drawing2D.AdjustableArrowCap(4, 4);
+            float[] dashValues = { 2, 2 };
 
             using var rapidPen = new Pen(Color.FromArgb(200, 80, 80), 1.0f);
-            rapidPen.CustomEndCap = arrow;
-            float[] dashValues = { 2, 2 };
+            if(parameters.ShowArrows) rapidPen.CustomEndCap = arrow;
+            
             rapidPen.DashCap = System.Drawing.Drawing2D.DashCap.Round;
             rapidPen.DashPattern = dashValues;
             using var feedPen = new Pen(Color.FromArgb(80, 160, 255), 1.5f);
-            feedPen.CustomEndCap = arrow;
+            if (parameters.ShowArrows) feedPen.CustomEndCap = arrow;
             using var arcPen = new Pen(Color.FromArgb(80, 220, 160), 1.5f);
-            
-            if(_segments.Count > 1000)
+
+            if(_segments.Count > 1500)
             {
                 MessageBox.Show($"To many steps to display ({_segments.Count})", "Aborted", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             } else
@@ -493,9 +496,14 @@ namespace gCodeGeneratorWinForms
                             PointF cur = ToScreen(new PointF(px, pz));
 
                             if (s == steps)
-                                arcPen.CustomEndCap = arrow;
+                            { 
+                                if (parameters.ShowArrows) arcPen.CustomEndCap = arrow; 
+                            }
                             else
+                            {
                                 arcPen.EndCap = System.Drawing.Drawing2D.LineCap.Flat;
+                            }
+                                
 
 
 
