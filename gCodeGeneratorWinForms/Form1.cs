@@ -453,12 +453,21 @@ namespace gCodeGeneratorWinForms
             g.DrawLine(axisPen, ToScreen(new PointF(0, minZ - 1)), ToScreen(new PointF(0, maxZ + 1)));
 
             // ── Thick axis lines (behind toolpath) ───────────────────────────
+            using var stockPen = new Pen(Color.FromArgb(55, 255, 255, 255), 1f);
+            
             using var xAxisPen = new Pen(Color.FromArgb(55, 255, 255, 0), 3f);
             using var zAxisPen = new Pen(Color.FromArgb(55, 255, 255, 0), 3f);
             // X=0 centerline — horizontal line across full width
             g.DrawLine(xAxisPen, ToScreen(new PointF(0, minZ - 2)), ToScreen(new PointF(0, maxZ + 2)));
             // Z=0 vertical line — full height
             g.DrawLine(zAxisPen, ToScreen(new PointF(minX - 1, 0)), ToScreen(new PointF(maxX + 1, 0)));
+            
+            //g.DrawRectangle(stockPen, ToScreen(new PointF(0, 0)).X, ToScreen(new PointF(0, 0)).Y, 50,50);
+            
+            //using (Brush brush = new SolidBrush(Color.FromArgb(55, 255, 255, 255)))
+            //{
+            //    g.FillRectangle(brush, ToScreen(new PointF(maxX + 1, 0)).X - 30, ToScreen(new PointF(0, 0)).Y, 50, 50);
+            //}
 
             // ── Toolpath ─────────────────────────────────────────────────────
             var arrow = new System.Drawing.Drawing2D.AdjustableArrowCap(4, 4);
