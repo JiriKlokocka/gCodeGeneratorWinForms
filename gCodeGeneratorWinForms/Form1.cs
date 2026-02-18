@@ -1,5 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 using System.Globalization;
+using System.Diagnostics.CodeAnalysis;
 
 namespace gCodeGeneratorWinForms
 {
@@ -7,6 +8,8 @@ namespace gCodeGeneratorWinForms
     {
         // ─── TOOLPATH SEGMENTS FOR DRAWING ───────────────────────────────────
         private enum MoveType { Rapid, Feed, Arc }
+        
+        private System.Drawing.Drawing2D.AdjustableArrowCap arrow = new System.Drawing.Drawing2D.AdjustableArrowCap(4, 4);
 
         private class Segment
         {
@@ -79,7 +82,7 @@ namespace gCodeGeneratorWinForms
                 row += 22;
             }
 
-            void AddRow(string labelText, TextBox txt, string defaultVal)
+            void AddRow(string labelText, TextBox txt, string defaultVal, Label? secondLabel = null)
             {
                 var lbl = new Label
                 {
@@ -87,17 +90,28 @@ namespace gCodeGeneratorWinForms
                     ForeColor = Color.FromArgb(200, 200, 200),
                     Font = new Font("Segoe UI", 8.5f),
                     Location = new Point(8, row),
-                    Size = new Size(204, 18)
+                    //Size = new Size(204, 18),
+                    AutoSize = true
                 };
+                if (secondLabel != null)
+                {
+                    secondLabel.ForeColor = Color.FromArgb(255, 150, 0);
+                    secondLabel.Font = lbl.Font;
+                    secondLabel.Location = new Point(lbl.Location.X + lbl.Size.Width + 6, lbl.Location.Y);
+                    secondLabel.AutoSize = true;
+                    panelInputs.Controls.Add(secondLabel);
+                }
                 txt.Text = defaultVal;
                 txt.Location = new Point(8, row + 18);
-                txt.Size = new Size(204, 22);
+                txt.Size = new Size(200, 22);
                 txt.Font = new Font("Consolas", 9.5f);
                 txt.BackColor = Color.FromArgb(30, 30, 30);
                 txt.ForeColor = Color.White;
                 txt.TextChanged += AnyInput_Changed;
+                txt.BorderStyle = BorderStyle.FixedSingle;
                 panelInputs.Controls.Add(lbl);
                 panelInputs.Controls.Add(txt);
+                
                 row += rowH;
             }
 
@@ -127,17 +141,18 @@ namespace gCodeGeneratorWinForms
 
             // ─ Left Side ─────────────────────────────────────────────────────
             AddHeader("── Left Side ──");
-            AddRow("Left Radius (mm)", txtLeftRadius, "5");
+            AddRow("Left Radius (mm)", txtLeftRadius, "5",lblMaxLeftRadius);
             AddCheck(chkLeftChamfer, "Left Chamfer (instead of arc)");
 
             // ─ Right Side ────────────────────────────────────────────────────
             AddHeader("── Right Side ──");
-            AddRow("+ outer / - inner radius", txtRightRadius, "5");
+            AddRow("+ outer / - inner radius", txtRightRadius, "5", lblMaxRightRadius);
             AddCheck(chkRightChamfer, "Right Chamfer (instead of arc)");
 
             // ─ Other ─────────────────────────────────────────────────────────
             AddHeader("── Other ──");
             AddRow("Clearance (mm)", txtClear, "5");
+            AddCheck(chkAutoRadii, "Auto left and right radies");
 
             // ─ Output ────────────────────────────────────────────────────────
             AddHeader("── Output ──");
@@ -188,8 +203,21 @@ namespace gCodeGeneratorWinForms
             try
             {
                 p.Length = double.Parse(txtLength.Text, CI);
-                p.InitialDiameter = double.Parse(txtInitialDiameter.Text, CI);
-                p.TargetDiameter = double.Parse(txtTargetDiameter.Text, CI);
+                //Check if initial diameter is bigger than target diameter
+                if (double.Parse(txtInitialDiameter.Text, CI) >= p.TargetDiameter)
+                {
+                    p.InitialDiameter = double.Parse(txtInitialDiameter.Text, CI);
+                    //txtInitialDiameter.BackColor = Color.FromArgb(0, 255, 100, 100); 
+                } else
+                {
+                    txtInitialDiameter.BackColor = Color.FromArgb(155, 255, 100, 100);
+                }
+                //Check if target diameter is smaller than initial diameter
+                if (double.Parse(txtTargetDiameter.Text, CI) >= p.TargetDiameter)
+                {
+                    p.TargetDiameter = double.Parse(txtTargetDiameter.Text, CI);
+                }
+                
                 p.Cut = double.Parse(txtCut.Text, CI);
                 p.RoughFeed = double.Parse(txtRoughFeed.Text, CI);
                 p.FinishFeed = double.Parse(txtFinishFeed.Text, CI);
@@ -197,8 +225,62 @@ namespace gCodeGeneratorWinForms
                 p.LeftChamfer = chkLeftChamfer.Checked;
                 p.RightRadius = double.Parse(txtRightRadius.Text, CI);
                 p.RightChamfer = chkRightChamfer.Checked;
+                p.AutoRadies = chkAutoRadii.Checked;
                 p.Clear = double.Parse(txtClear.Text, CI);
                 p.FileName = txtFileName.Text;
+
+                var maxLeftRadius = ((p.InitialDiameter - p.TargetDiameter) / 2);
+                var maxRightRadiusPositive = (p.TargetDiameter / 2);
+                var maxRightRadiusNegative = -((p.InitialDiameter - p.TargetDiameter) / 2);
+
+               
+
+                //For short parts, the radius cannot be larger than half the length, otherwise it would create a full circle or more
+                if (maxLeftRadius > (p.Length/2)) {
+                    maxLeftRadius = (p.Length / 2);
+                }
+
+                if (maxRightRadiusPositive > (p.Length / 2))
+                {
+                    maxRightRadiusPositive = (p.Length / 2);
+                }
+
+                //
+                if (p.Cut <= 0)
+                {
+                    p.Cut = 0.1; // default to 0.1mm cut if invalid value is entered
+                    txtCut.Text = p.Cut.ToString(CI);
+                }
+
+                // If AutoRadies is enabled, set left and right radius to maximum possible values based on dimensions, and disable manual input
+                if (p.AutoRadies)
+                {
+                    p.LeftRadius = maxLeftRadius;
+                    
+                    if(p.RightRadius >= 0)
+                        if(maxRightRadiusPositive > maxLeftRadius)
+                        {
+                            p.RightRadius = maxLeftRadius;
+                        }else
+                        {
+                            p.RightRadius = maxRightRadiusPositive;
+                        }
+                    else
+                    {
+                        p.RightRadius = maxRightRadiusNegative;
+                    }
+                    txtLeftRadius.Enabled = false;
+                    txtRightRadius.Enabled = false;
+                    txtLeftRadius.Text = p.LeftRadius.ToString(CI);
+                    txtRightRadius.Text = p.RightRadius.ToString(CI);
+                } else {                     
+                    txtLeftRadius.Enabled = true;
+                    txtRightRadius.Enabled = true;
+                }
+
+                lblMaxLeftRadius.Text = $"(max: {maxLeftRadius:0.###})";   
+                lblMaxRightRadius.Text = $"(max: {maxRightRadiusPositive:0.###} / {maxRightRadiusNegative:0.###})";
+
                 return true;
             }
             catch { return false; }
@@ -318,7 +400,7 @@ namespace gCodeGeneratorWinForms
         private void panelViewer_Paint(object? sender, PaintEventArgs e)
         {
             var g = e.Graphics;
-            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
             g.Clear(Color.FromArgb(30, 30, 30));
 
             if (_segments.Count == 0) return;
@@ -362,43 +444,64 @@ namespace gCodeGeneratorWinForms
             using var xAxisPen = new Pen(Color.FromArgb(55, 255, 255, 0), 3f);
             using var zAxisPen = new Pen(Color.FromArgb(55, 255, 255, 0), 3f);
             // X=0 centerline — horizontal line across full width
-            g.DrawLine(xAxisPen, ToScreen(new PointF(0, minZ - 2)), ToScreen(new PointF(0, maxZ + 2)));
+            //g.DrawLine(xAxisPen, ToScreen(new PointF(0, minZ - 2)), ToScreen(new PointF(0, maxZ + 2)));
             // Z=0 vertical line — full height
-            g.DrawLine(zAxisPen, ToScreen(new PointF(minX - 1, 0)), ToScreen(new PointF(maxX + 1, 0)));
+            //g.DrawLine(zAxisPen, ToScreen(new PointF(minX - 1, 0)), ToScreen(new PointF(maxX + 1, 0)));
 
             // ── Toolpath ─────────────────────────────────────────────────────
+            
+
             using var rapidPen = new Pen(Color.FromArgb(200, 80, 80), 1.0f);
+            rapidPen.CustomEndCap = arrow;
+            float[] dashValues = { 2, 2 };
+            rapidPen.DashCap = System.Drawing.Drawing2D.DashCap.Round;
+            rapidPen.DashPattern = dashValues;
             using var feedPen = new Pen(Color.FromArgb(80, 160, 255), 1.5f);
+            feedPen.CustomEndCap = arrow;
             using var arcPen = new Pen(Color.FromArgb(80, 220, 160), 1.5f);
-
-            foreach (var seg in _segments)
+            
+            if(_segments.Count > 1000)
             {
-                if (seg.IsArc)
+                MessageBox.Show($"To many steps to display ({_segments.Count})", "Aborted", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            } else
+            {
+                foreach (var seg in _segments)
                 {
-                    // Convert arc to polyline — avoids GDI+ angle/flip issues
-                    int steps = 32;
-                    double startRad = seg.StartAngle * Math.PI / 180.0;
-                    double sweepRad = seg.SweepAngle * Math.PI / 180.0;
-                    PointF? prev = null;
-
-                    for (int s = 0; s <= steps; s++)
+                    if (seg.IsArc)
                     {
-                        double angle = startRad + sweepRad * s / steps;
-                        float px = seg.Center.X + seg.Radius * (float)Math.Cos(angle);
-                        float pz = seg.Center.Y + seg.Radius * (float)Math.Sin(angle);
-                        PointF cur = ToScreen(new PointF(px, pz));
+                        // Convert arc to polyline — avoids GDI+ angle/flip issues
+                        int steps = 32;
+                        double startRad = seg.StartAngle * Math.PI / 180.0;
+                        double sweepRad = seg.SweepAngle * Math.PI / 180.0;
+                        PointF? prev = null;
 
-                        if (prev.HasValue)
-                            g.DrawLine(arcPen, prev.Value, cur);
-                        prev = cur;
+                        for (int s = 0; s <= steps; s++)
+                        {
+                            double angle = startRad + sweepRad * s / steps;
+                            float px = seg.Center.X + seg.Radius * (float)Math.Cos(angle);
+                            float pz = seg.Center.Y + seg.Radius * (float)Math.Sin(angle);
+                            PointF cur = ToScreen(new PointF(px, pz));
+
+                            if (s == steps)
+                                arcPen.CustomEndCap = arrow;
+                            else
+                                arcPen.EndCap = System.Drawing.Drawing2D.LineCap.Flat;
+
+
+
+                            if (prev.HasValue)
+                                g.DrawLine(arcPen, prev.Value, cur);
+                            prev = cur;
+                        }
+                    }
+                    else
+                    {
+                        var pen = seg.Type == MoveType.Rapid ? rapidPen : feedPen;
+                        g.DrawLine(pen, ToScreen(seg.Start), ToScreen(seg.End));
                     }
                 }
-                else
-                {
-                    var pen = seg.Type == MoveType.Rapid ? rapidPen : feedPen;
-                    g.DrawLine(pen, ToScreen(seg.Start), ToScreen(seg.End));
-                }
             }
+            
 
             // Legend
             using var font = new Font("Arial", 8);

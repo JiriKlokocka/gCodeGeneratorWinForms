@@ -27,11 +27,14 @@
             txtRoughFeed = new TextBox();
             txtFinishFeed = new TextBox();
             txtLeftRadius = new TextBox();
+            lblMaxRightRadius = new Label();
+            lblMaxLeftRadius = new Label();
             txtRightRadius = new TextBox();
             txtClear = new TextBox();
             txtFileName = new TextBox();
             chkLeftChamfer = new CheckBox();
             chkRightChamfer = new CheckBox();
+            chkAutoRadii = new CheckBox();
             ((System.ComponentModel.ISupportInitialize)splitMain).BeginInit();
             splitMain.Panel1.SuspendLayout();
             splitMain.Panel2.SuspendLayout();
@@ -55,8 +58,8 @@
             // splitMain.Panel2
             // 
             splitMain.Panel2.Controls.Add(splitRight);
-            splitMain.Size = new Size(1100, 700);
-            splitMain.SplitterDistance = 359;
+            splitMain.Size = new Size(1373, 819);
+            splitMain.SplitterDistance = 448;
             splitMain.TabIndex = 0;
             // 
             // panelInputs
@@ -67,7 +70,7 @@
             panelInputs.Location = new Point(0, 0);
             panelInputs.Name = "panelInputs";
             panelInputs.Padding = new Padding(8);
-            panelInputs.Size = new Size(359, 700);
+            panelInputs.Size = new Size(448, 819);
             panelInputs.TabIndex = 0;
             // 
             // splitRight
@@ -84,8 +87,8 @@
             // splitRight.Panel2
             // 
             splitRight.Panel2.Controls.Add(txtGCode);
-            splitRight.Size = new Size(737, 700);
-            splitRight.SplitterDistance = 350;
+            splitRight.Size = new Size(921, 819);
+            splitRight.SplitterDistance = 409;
             splitRight.TabIndex = 0;
             // 
             // panelViewer
@@ -95,7 +98,7 @@
             panelViewer.Dock = DockStyle.Fill;
             panelViewer.Location = new Point(0, 0);
             panelViewer.Name = "panelViewer";
-            panelViewer.Size = new Size(737, 350);
+            panelViewer.Size = new Size(921, 409);
             panelViewer.TabIndex = 0;
             panelViewer.Paint += panelViewer_Paint;
             // 
@@ -108,7 +111,7 @@
             txtGCode.Location = new Point(0, 0);
             txtGCode.Name = "txtGCode";
             txtGCode.ReadOnly = true;
-            txtGCode.Size = new Size(737, 346);
+            txtGCode.Size = new Size(921, 406);
             txtGCode.TabIndex = 0;
             txtGCode.Text = "";
             txtGCode.WordWrap = false;
@@ -169,6 +172,20 @@
             txtLeftRadius.Size = new Size(100, 23);
             txtLeftRadius.TabIndex = 0;
             // 
+            // lblMaxRightRadius
+            // 
+            lblMaxRightRadius.Location = new Point(0, 0);
+            lblMaxRightRadius.Name = "lblMaxRightRadius";
+            lblMaxRightRadius.Size = new Size(100, 23);
+            lblMaxRightRadius.TabIndex = 0;
+            // 
+            // lblMaxLeftRadius
+            // 
+            lblMaxLeftRadius.Location = new Point(0, 0);
+            lblMaxLeftRadius.Name = "lblMaxLeftRadius";
+            lblMaxLeftRadius.Size = new Size(100, 23);
+            lblMaxLeftRadius.TabIndex = 0;
+            // 
             // txtRightRadius
             // 
             txtRightRadius.Location = new Point(0, 0);
@@ -204,10 +221,17 @@
             chkRightChamfer.Size = new Size(104, 24);
             chkRightChamfer.TabIndex = 0;
             // 
+            // chkAutoRadii
+            // 
+            chkAutoRadii.Location = new Point(0, 0);
+            chkAutoRadii.Name = "chkAutoRadii";
+            chkAutoRadii.Size = new Size(104, 24);
+            chkAutoRadii.TabIndex = 0;
+            // 
             // Form1
             // 
             BackColor = Color.FromArgb(37, 37, 38);
-            ClientSize = new Size(1100, 700);
+            ClientSize = new Size(1373, 819);
             Controls.Add(splitMain);
             Name = "Form1";
             Text = "G-Code Generator — Turning";
@@ -233,6 +257,7 @@
         private TextBox txtLength, txtInitialDiameter, txtTargetDiameter;
         private TextBox txtCut, txtRoughFeed, txtFinishFeed;
         private TextBox txtLeftRadius, txtRightRadius, txtClear, txtFileName;
-        private CheckBox chkLeftChamfer, chkRightChamfer;
+        private CheckBox chkLeftChamfer, chkRightChamfer, chkAutoRadii;
+        private Label lblMaxLeftRadius, lblMaxRightRadius;
     }
 }

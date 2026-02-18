@@ -8,7 +8,11 @@ namespace gCodeGeneratorWinForms
         public double Length { get; set; } = 20.0;
         public double InitialDiameter { get; set; } = 20.0;
         public double TargetDiameter { get; set; } = 10.0;
-        public double Cut { get; set; } = 0.5;
+        private double _cut = 0.5;
+        public double Cut         {
+            get => _cut;
+            set => _cut = value > 0 ? value : 0.5; // Ensure cut is positive
+        }
         public double RoughFeed { get; set; } = 200;
         public double FinishFeed { get; set; } = 150;
 
@@ -20,6 +24,7 @@ namespace gCodeGeneratorWinForms
         // if negative  → absolute value cannot be greater than depth
         public double RightRadius { get; set; } = 5.0;
         public bool RightChamfer { get; set; } = false;
+        public bool AutoRadies { get; set; } = false;
 
         public int LastCutTest { get; set; } = 1;
         public double Clear { get; set; } = 5.0;
@@ -109,19 +114,29 @@ namespace gCodeGeneratorWinForms
                 // ══════════════════════════════════════════════════════════════
                 if (p.RightRadius > 0)
                 {
+                    var arcXStart = initialRadius - (actDepth + ((i + 1) * rightRadiusFraction));
+                    var arcXEnd = initialRadius - actDepth;
+                    var arcZEnd = -((i + 1) * rightRadiusFraction);
+                    /*if(arcXStart < 0)
+                    {
+                        arcZEnd += arcXStart; // Reduce arcZEnd by the amount arcXStart is below 0
+                        arcXEnd -= arcXStart; // Reduce arcXEnd by the amount arcXStart is below 0
+                        arcXStart = 0;
+                    }*/
+                    //TODO: Handle bigger arc radii
                     if (!p.RightChamfer)
                     {
                         W(";-) Right Outer Radius");
-                        W($"g1 x{R(initialRadius - (actDepth + ((i + 1) * rightRadiusFraction)))}");
+                        W($"g1 x{R(arcXStart)}");
                         W("g1 z0");
-                        W($"G03 z{R(-((i + 1) * rightRadiusFraction))} x{R(initialRadius - actDepth)} I0 K{R(-((i + 1) * rightRadiusFraction))}");
+                        W($"G03 z{R(arcZEnd)} x{R(arcXEnd)} I0 K{R(-((i + 1) * rightRadiusFraction))}");
                     }
                     else
                     {
                         W(";-) Right Outer Chamfer");
-                        W($"g1 x{R(initialRadius - (actDepth + ((i + 1) * rightRadiusFraction)))}");
+                        W($"g1 x{R(arcXStart)}");
                         W("g1 z0");
-                        W($"G01 z{R(-((i + 1) * rightRadiusFraction))} x{R(initialRadius - actDepth)}");
+                        W($"G01 z{R(arcZEnd)} x{R(arcXEnd)}");
                     }
                 }
                 // ══════════════════════════════════════════════════════════════
