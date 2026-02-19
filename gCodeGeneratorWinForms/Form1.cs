@@ -98,6 +98,7 @@ namespace gCodeGeneratorWinForms
 
             foreach (var t in texts)  t.TextChanged    += AnyInput_Changed;
             foreach (var c in checks) c.CheckedChanged += AnyCheck_Changed;
+            parameters = p;
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -182,9 +183,9 @@ namespace gCodeGeneratorWinForms
                 btnMinus.ForeColor = Color.Silver;
                 btnMinus.Font = new Font("Segoe UI", 7.5f, FontStyle.Bold);//+
                 btnMinus.FlatStyle = FlatStyle.Flat;
-                //if(parameters.AutoRadiuses)
+                //if (parameters.AutoRadiuses == true)
                 //{
-                //    if(txt.Name == "txtLeftRadius" || txt.Name == "txtRightRadius")
+                //    if (txt.Name == "txtLeftRadius" || txt.Name == "txtRightRadius")
                 //    {
                 //        btnPlus.Enabled = false;
                 //        btnMinus.Enabled = false;
@@ -251,7 +252,7 @@ namespace gCodeGeneratorWinForms
                         }
                             
                     };
-                    //btnFlipRightRadius.Text = parameters.RoughFeed.ToString();
+                    
                     panelInputs.Controls.Add(btnFlipRightRadius);
                     row += rowH;
                 }
@@ -329,11 +330,12 @@ namespace gCodeGeneratorWinForms
 
         private void UpdateAll()
         {
+            
             CheckTimer(() => {
-                if (!TryReadParameters(out TurningParameters p)) return;
+                if (!TryReadParameters(out parameters)) return;
                 try
                 {
-                    var gen = new GCodeGenerator(p);
+                    var gen = new GCodeGenerator(parameters);
                     _gcode = gen.Generate();
 
                     txtGCode.Text = _gcode;
@@ -413,10 +415,7 @@ namespace gCodeGeneratorWinForms
                     maxRightRadiusPositive = (p.Length / 2);
                 }
 
-                //
-              
-
-                // If AutoRadies is enabled, set left and right radius to maximum possible values based on dimensions, and disable manual input
+                // If AutoRadiuses is enabled, set left and right radius to maximum possible values based on dimensions, and disable manual input
                 if (p.AutoRadiuses)
                 {
                     p.LeftSideRadius = maxLeftRadius;
@@ -444,7 +443,7 @@ namespace gCodeGeneratorWinForms
 
                 lblMaxLeftRadius.Text = $"(max: {maxLeftRadius:0.###})";   
                 lblMaxRightRadius.Text = $"(max: {maxRightRadiusPositive:0.###} / {maxRightRadiusNegative:0.###})";
-                parameters = p;
+
                 return true;
             }
             catch { return false; }
