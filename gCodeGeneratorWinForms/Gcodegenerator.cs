@@ -17,19 +17,22 @@ namespace gCodeGeneratorWinForms
         public double RoughFeed { get; set; } = 200;
         public double FinishFeed { get; set; } = 150;
 
-        public double LeftRadius { get; set; } = 5.0;  // Cannot be greater than depth
-        public bool LeftChamfer { get; set; } = false; // true = chamfer instead of arc
+        public double LeftSideRadius { get; set; } = 5.0;  // Cannot be greater than depth
+        public bool LeftSideIsChamfer { get; set; } = false; // true = chamfer instead of arc
 
         // RightRadius: positive = outer radius, negative = inner radius
         // if positive  → cannot be greater than targetDiameter / 2
         // if negative  → absolute value cannot be greater than depth
-        public double RightRadius { get; set; } = 5.0;
-        public bool RightChamfer { get; set; } = false;
-        public bool AutoRadies { get; set; } = false;
+        public double RightSideRadius { get; set; } = 5.0;
+        public bool RightSideIsChamfer { get; set; } = false;
+        public bool AutoRadiuses { get; set; } = false;
+        public double Clearance { get; set; } = 5.0;
+
+
         public bool ShowArrows { get; set; } = true;
         [JsonIgnore]
-        public int LastCutTest { get; set; } = 1;
-        public double Clear { get; set; } = 5.0;
+        public bool LastCutTest { get; set; } = false;
+        
         public string FileName { get; set; } = @"C:\Mach3\GCode\_myFile.gcode";
     }
 
@@ -60,7 +63,7 @@ namespace gCodeGeneratorWinForms
             cut = Math.Round(cut + (rest / mainSteps), 5);
             rest = 0;
 
-            double rightRadiusFraction = Math.Abs(Math.Round(p.RightRadius / (mainSteps + 1), 4));
+            double rightRadiusFraction = Math.Abs(Math.Round(p.RightSideRadius / (mainSteps + 1), 4));
 
             // Determine at which depth arcs start being written (leftOffset / rightOffset)
             double leftOffset = 0;
@@ -69,7 +72,7 @@ namespace gCodeGeneratorWinForms
             for (int i = 0; i <= mainSteps; i++)
             {
                 double act = i * cut;
-                if (depth - act < p.LeftRadius)
+                if (depth - act < p.LeftSideRadius)
                 {
                     leftOffset = Math.Abs(act - depth) + cut;
                     break;
@@ -78,7 +81,7 @@ namespace gCodeGeneratorWinForms
             for (int i = 0; i <= mainSteps; i++)
             {
                 double act = i * cut;
-                if (depth - act < Math.Abs(p.RightRadius))
+                if (depth - act < Math.Abs(p.RightSideRadius))
                 {
                     rightOffset = Math.Abs(act - depth) + cut;
                     break;
@@ -94,9 +97,9 @@ namespace gCodeGeneratorWinForms
             W($";-) rest: {rest}");
             W($";-) cut: {cut}");
             W($";-) leftOffset:{leftOffset}");
-            W($";-) leftRad:{p.LeftRadius})");
+            W($";-) leftRad:{p.LeftSideRadius})");
             W($";-) rightOffset :{rightOffset})");
-            W($";-) rightRadius:{p.RightRadius})");
+            W($";-) rightRadius:{p.RightSideRadius})");
             W("G18 G8 G21");
 
             int m = 1;  // left-radius step counter
@@ -114,7 +117,7 @@ namespace gCodeGeneratorWinForms
                 // ══════════════════════════════════════════════════════════════
                 // RIGHT SIDE — OUTER RADIUS or CHAMFER
                 // ══════════════════════════════════════════════════════════════
-                if (p.RightRadius > 0)
+                if (p.RightSideRadius > 0)
                 {
                     var arcXStart = initialRadius - (actDepth + ((i + 1) * rightRadiusFraction));
                     var arcXEnd = initialRadius - actDepth;
@@ -126,7 +129,7 @@ namespace gCodeGeneratorWinForms
                         arcXStart = 0;
                     }*/
                     //TODO: Handle bigger arc radii
-                    if (!p.RightChamfer)
+                    if (!p.RightSideIsChamfer)
                     {
                         W(";-) Right Outer Radius");
                         W($"g1 x{R(arcXStart)}");
@@ -144,9 +147,9 @@ namespace gCodeGeneratorWinForms
                 // ══════════════════════════════════════════════════════════════
                 // RIGHT SIDE — INNER RADIUS or CHAMFER
                 // ══════════════════════════════════════════════════════════════
-                else if (p.RightRadius < 0)
+                else if (p.RightSideRadius < 0)
                 {
-                    double rightInnerRadius = Math.Abs(p.RightRadius);
+                    double rightInnerRadius = Math.Abs(p.RightSideRadius);
 
                     if (depth - actDepth < rightInnerRadius)
                     {
@@ -155,7 +158,7 @@ namespace gCodeGeneratorWinForms
                         W($"g1 z{R(-(rightOffset - (n * cut)))}");
                         W($"g1 x{R(initialRadius - (depth - rightInnerRadius))}"); // arc start point
 
-                        if (!p.RightChamfer)
+                        if (!p.RightSideIsChamfer)
                         {
                             W($"G02 z{R(-rightInnerRadius)} x{R(initialRadius - actDepth)} I0 K{R((rightOffset - (n * cut)) - rightInnerRadius)}");
                         }
@@ -186,31 +189,31 @@ namespace gCodeGeneratorWinForms
                 // ══════════════════════════════════════════════════════════════
                 W(";-) Left Radius or Chamfer");
 
-                if (depth - actDepth < p.LeftRadius)
+                if (depth - actDepth < p.LeftSideRadius)
                 {
-                    W($"g1 z{R(-(p.Length - p.LeftRadius))}"); // arc start point
+                    W($"g1 z{R(-(p.Length - p.LeftSideRadius))}"); // arc start point
 
-                    if (((i == mainSteps) || (p.LeftRadius < cut)) && p.LastCutTest == 0)
+                    if (((i == mainSteps) || (p.LeftSideRadius < cut)) && p.LastCutTest == true)
                     {
                         // Last cut OR leftRadius smaller than cut step
-                        if (!p.LeftChamfer && p.LeftRadius > 0)
+                        if (!p.LeftSideIsChamfer && p.LeftSideRadius > 0)
                         {
-                            W($"G02 z{R(-p.Length)} x{R(initialRadius - (depth - p.LeftRadius))} I{R(p.LeftRadius)} K0");
+                            W($"G02 z{R(-p.Length)} x{R(initialRadius - (depth - p.LeftSideRadius))} I{R(p.LeftSideRadius)} K0");
                         }
                         else
                         {
-                            W($"G01 z{R(-p.Length)} x-{R(depth - p.LeftRadius)}");
+                            W($"G01 z{R(-p.Length)} x-{R(depth - p.LeftSideRadius)}");
                         }
                     }
                     else
                     {
-                        if (!p.LeftChamfer && p.LeftRadius > 0)
+                        if (!p.LeftSideIsChamfer && p.LeftSideRadius > 0)
                         {
-                            W($"G02 z{R(-(p.Length - leftOffset + (m * cut)))} x{R(initialRadius - (depth - p.LeftRadius))} I{R(actDepth - (depth - p.LeftRadius))} K0");
+                            W($"G02 z{R(-(p.Length - leftOffset + (m * cut)))} x{R(initialRadius - (depth - p.LeftSideRadius))} I{R(actDepth - (depth - p.LeftSideRadius))} K0");
                         }
                         else
                         {
-                            W($"G01 z{R(-(p.Length - leftOffset + (m * cut)))} x{R(initialRadius - (depth - p.LeftRadius))}");
+                            W($"G01 z{R(-(p.Length - leftOffset + (m * cut)))} x{R(initialRadius - (depth - p.LeftSideRadius))}");
                         }
                     }
 
@@ -224,14 +227,14 @@ namespace gCodeGeneratorWinForms
 
                 // ── Retract & return to start ──────────────────────────────
                 W($"g1 x{R(initialRadius)}");
-                W($"g0 x{R(initialRadius + p.Clear)}");
+                W($"g0 x{R(initialRadius + p.Clearance)}");
                 W("g0 z0");
-                W($"g0 x{R(initialRadius + p.Clear)}");
+                W($"g0 x{R(initialRadius + p.Clearance)}");
             }
 
             // ── End of program ────────────────────────────────────────────
             W("");
-            W($"g0 z0{p.Clear} x{R(initialRadius + p.Clear)}");
+            W($"g0 z0{p.Clearance} x{R(initialRadius + p.Clearance)}");
             W("M5"); // Spindle stop
 
             // Replace commas with dots for G-code compatibility

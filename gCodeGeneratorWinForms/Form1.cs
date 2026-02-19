@@ -1,15 +1,18 @@
-﻿using System.Text.RegularExpressions;
-using System.Globalization;
+﻿using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace gCodeGeneratorWinForms
 {
+    
+
     public partial class Form1 : Form
     {
         // ─── TOOLPATH SEGMENTS FOR DRAWING ───────────────────────────────────
         private enum MoveType { Rapid, Feed, Arc }
-        
-        
+
+        private System.Windows.Forms.Timer _typingTimer;
 
         private TurningParameters parameters =  new TurningParameters();
 
@@ -72,7 +75,7 @@ namespace gCodeGeneratorWinForms
             TextBox[] texts = { txtLength, txtInitialDiameter, txtTargetDiameter,
                                 txtCut, txtRoughFeed, txtFinishFeed,
                                 txtLeftRadius, txtRightRadius, txtClear, txtFileName };
-            CheckBox[] checks = { chkLeftChamfer, chkRightChamfer, chkAutoRadii, chkShowArrows };
+            CheckBox[] checks = { chkLeftChamfer, chkRightChamfer, chkAutoRadiuses, chkShowArrows };
 
             foreach (var t in texts)  t.TextChanged    -= AnyInput_Changed;
             foreach (var c in checks) c.CheckedChanged -= AnyCheck_Changed;
@@ -83,14 +86,14 @@ namespace gCodeGeneratorWinForms
             txtCut.Text             = p.Cut.ToString(CI);
             txtRoughFeed.Text       = p.RoughFeed.ToString(CI);
             txtFinishFeed.Text      = p.FinishFeed.ToString(CI);
-            txtLeftRadius.Text      = p.LeftRadius.ToString(CI);
-            txtRightRadius.Text     = p.RightRadius.ToString(CI);
-            txtClear.Text           = p.Clear.ToString(CI);
+            txtLeftRadius.Text      = p.LeftSideRadius.ToString(CI);
+            txtRightRadius.Text     = p.RightSideRadius.ToString(CI);
+            txtClear.Text           = p.Clearance.ToString(CI);
             txtFileName.Text        = p.FileName;
 
-            chkLeftChamfer.Checked  = p.LeftChamfer;
-            chkRightChamfer.Checked = p.RightChamfer;
-            chkAutoRadii.Checked    = p.AutoRadies;
+            chkLeftChamfer.Checked  = p.LeftSideIsChamfer;
+            chkRightChamfer.Checked = p.RightSideIsChamfer;
+            chkAutoRadiuses.Checked    = p.AutoRadiuses;
             chkShowArrows.Checked   = p.ShowArrows;
 
             foreach (var t in texts)  t.TextChanged    += AnyInput_Changed;
@@ -118,7 +121,7 @@ namespace gCodeGeneratorWinForms
             base.OnShown(e);
 
             // Set splitter distances after form is fully rendered
-            splitMain.Panel1MinSize = 220;
+            splitMain.Panel1MinSize = 300;
             splitMain.Panel2MinSize = 400;
             splitMain.SplitterDistance = 220;
 
@@ -141,7 +144,9 @@ namespace gCodeGeneratorWinForms
         private void BuildInputPanel()
         {
             int row = 8;
-            int rowH = 42;
+            int rowH = 32;
+            int inpuTxtWidth = 45;
+            int leftPadding = 8;
 
             void AddHeader(string text)
             {
@@ -150,7 +155,7 @@ namespace gCodeGeneratorWinForms
                     Text = text,
                     ForeColor = Color.FromArgb(100, 180, 255),
                     Font = new Font("Segoe UI", 9f, FontStyle.Bold),
-                    Location = new Point(8, row),
+                    Location = new Point(leftPadding, row),
                     Size = new Size(204, 20)
                 };
                 panelInputs.Controls.Add(lbl);
@@ -159,12 +164,41 @@ namespace gCodeGeneratorWinForms
 
             void AddRow(string labelText, TextBox txt, string defaultVal, Label? secondLabel = null)
             {
+                ButtonNoPadding btnPlus = new ButtonNoPadding();
+                btnPlus.Text = "▲";
+                btnPlus.Location = new Point(leftPadding, row);
+                btnPlus.Size = new Size(15, 11);
+                btnPlus.BackColor = Color.FromArgb(30, 30, 30); 
+                btnPlus.ForeColor = Color.Silver;
+                btnPlus.Font = new Font("Segoe UI", 7.5f, FontStyle.Bold);//+
+                btnPlus.FlatStyle = FlatStyle.Flat;
+                btnPlus.Click += (object? sender, EventArgs e) => { txt.Text = (Math.Round(double.Parse(txt.Text, CI) + 0.1, 2)).ToString(CI); };
+
+                ButtonNoPadding btnMinus = new ButtonNoPadding();
+                btnMinus.Text = "▼";
+                btnMinus.Location = new Point(leftPadding, row + btnPlus.Size.Height -1);
+                btnMinus.Size = new Size(15, 11);
+                btnMinus.BackColor = Color.FromArgb(30, 30, 30);
+                btnMinus.ForeColor = Color.Silver;
+                btnMinus.Font = new Font("Segoe UI", 7.5f, FontStyle.Bold);//+
+                btnMinus.FlatStyle = FlatStyle.Flat;
+                btnMinus.Click += (object? sender, EventArgs e) => { txt.Text = (Math.Round(double.Parse(txt.Text, CI) - 0.1, 2)).ToString(CI); };
+
+                txt.Text = defaultVal;
+                txt.Location = new Point(+leftPadding + btnPlus.Size.Width + 2, row);
+                txt.Size = new Size(inpuTxtWidth, 25);
+                txt.Font = new Font("Consolas", 9.5f);
+                txt.BackColor = Color.FromArgb(30, 30, 30);
+                txt.ForeColor = Color.White;
+                txt.TextChanged += AnyInput_Changed;
+                txt.BorderStyle = BorderStyle.FixedSingle;
+
                 var lbl = new Label
                 {
                     Text = labelText,
                     ForeColor = Color.FromArgb(200, 200, 200),
                     Font = new Font("Segoe UI", 8.5f),
-                    Location = new Point(8, row),
+                    Location = new Point(txt.Location.X + inpuTxtWidth + 2, row+3),
                     //Size = new Size(204, 18),
                     AutoSize = true
                 };
@@ -176,16 +210,11 @@ namespace gCodeGeneratorWinForms
                     secondLabel.AutoSize = true;
                     panelInputs.Controls.Add(secondLabel);
                 }
-                txt.Text = defaultVal;
-                txt.Location = new Point(8, row + 18);
-                txt.Size = new Size(200, 22);
-                txt.Font = new Font("Consolas", 9.5f);
-                txt.BackColor = Color.FromArgb(30, 30, 30);
-                txt.ForeColor = Color.White;
-                txt.TextChanged += AnyInput_Changed;
-                txt.BorderStyle = BorderStyle.FixedSingle;
-                panelInputs.Controls.Add(lbl);
+
+                panelInputs.Controls.Add(btnPlus);
+                panelInputs.Controls.Add(btnMinus);
                 panelInputs.Controls.Add(txt);
+                panelInputs.Controls.Add(lbl);
                 
                 row += rowH;
             }
@@ -193,7 +222,7 @@ namespace gCodeGeneratorWinForms
             void AddCheck(CheckBox chk, string text)
             {
                 chk.Text = text;
-                chk.Location = new Point(8, row);
+                chk.Location = new Point(leftPadding, row);
                 chk.Size = new Size(204, 22);
                 chk.ForeColor = Color.FromArgb(200, 200, 200);
                 chk.Font = new Font("Segoe UI", 8.5f);
@@ -221,14 +250,16 @@ namespace gCodeGeneratorWinForms
 
             // ─ Right Side ────────────────────────────────────────────────────
             AddHeader("── Right Side ──");
-            AddRow("+ outer / - inner radius", txtRightRadius, "5", lblMaxRightRadius);
+            AddRow("+ outer / - inner", txtRightRadius, "5", lblMaxRightRadius);
             AddCheck(chkRightChamfer, "Right Chamfer (instead of arc)");
 
             // ─ Other ─────────────────────────────────────────────────────────
             AddHeader("── Other ──");
             AddRow("Clearance (mm)", txtClear, "5");
-            AddCheck(chkAutoRadii, "Auto left and right radies");
+            AddCheck(chkAutoRadiuses, "Auto left and right radiuses");
             AddCheck(chkShowArrows, "Show arrows in graphic");
+            AddCheck(chkLastCutTest, "chkLastCutTest");
+            
 
             // ─ Output ────────────────────────────────────────────────────────
             AddHeader("── Output ──");
@@ -237,7 +268,7 @@ namespace gCodeGeneratorWinForms
             // ─ Save Button ───────────────────────────────────────────────────
             row += 8;
             btnSave.Text = "💾  Save G-Code";
-            btnSave.Location = new Point(8, row);
+            btnSave.Location = new Point(leftPadding, row);
             btnSave.Size = new Size(204, 34);
             btnSave.BackColor = Color.FromArgb(0, 122, 204);
             btnSave.ForeColor = Color.White;
@@ -253,23 +284,25 @@ namespace gCodeGeneratorWinForms
 
         private void UpdateAll()
         {
-            if (!TryReadParameters(out TurningParameters p)) return;
-            try
-            {
-                var gen = new GCodeGenerator(p);
-                _gcode = gen.Generate();
+            CheckTimer(() => {
+                if (!TryReadParameters(out TurningParameters p)) return;
+                try
+                {
+                    var gen = new GCodeGenerator(p);
+                    _gcode = gen.Generate();
 
-                txtGCode.Text = _gcode;
-                txtGCode.SelectionStart = 0;
-                txtGCode.ScrollToCaret();
+                    txtGCode.Text = _gcode;
+                    txtGCode.SelectionStart = 0;
+                    txtGCode.ScrollToCaret();
 
-                _segments = ParseGCode(_gcode);
-                panelViewer.Invalidate();
-            }
-            catch (Exception ex)
-            {
-                txtGCode.Text = $"; Error: {ex.Message}";
-            }
+                    _segments = ParseGCode(_gcode);
+                    panelViewer.Invalidate();
+                }
+                catch (Exception ex)
+                {
+                    txtGCode.Text = $"; Error: {ex.Message}";
+                }
+            });
         }
 
         // ─── READ PARAMETERS — InvariantCulture so dot decimals work in Czech locale ──
@@ -311,13 +344,14 @@ namespace gCodeGeneratorWinForms
 
                 p.RoughFeed = double.Parse(txtRoughFeed.Text, CI);
                 p.FinishFeed = double.Parse(txtFinishFeed.Text, CI);
-                p.LeftRadius = double.Parse(txtLeftRadius.Text, CI);
-                p.LeftChamfer = chkLeftChamfer.Checked;
-                p.RightRadius = double.Parse(txtRightRadius.Text, CI);
-                p.RightChamfer = chkRightChamfer.Checked;
-                p.AutoRadies = chkAutoRadii.Checked;
+                p.LeftSideRadius = double.Parse(txtLeftRadius.Text, CI);
+                p.LeftSideIsChamfer = chkLeftChamfer.Checked;
+                p.RightSideRadius = double.Parse(txtRightRadius.Text, CI);
+                p.RightSideIsChamfer = chkRightChamfer.Checked;
+                p.AutoRadiuses = chkAutoRadiuses.Checked;
                 p.ShowArrows = chkShowArrows.Checked;
-                p.Clear = double.Parse(txtClear.Text, CI);
+                p.LastCutTest = chkLastCutTest.Checked;
+                p.Clearance = double.Parse(txtClear.Text, CI);
                 p.FileName = txtFileName.Text;
 
                 var maxLeftRadius = ((p.InitialDiameter - p.TargetDiameter) / 2);
@@ -338,26 +372,26 @@ namespace gCodeGeneratorWinForms
               
 
                 // If AutoRadies is enabled, set left and right radius to maximum possible values based on dimensions, and disable manual input
-                if (p.AutoRadies)
+                if (p.AutoRadiuses)
                 {
-                    p.LeftRadius = maxLeftRadius;
+                    p.LeftSideRadius = maxLeftRadius;
                     
-                    if(p.RightRadius >= 0)
+                    if(p.RightSideRadius >= 0)
                         if(maxRightRadiusPositive > maxLeftRadius)
                         {
-                            p.RightRadius = maxLeftRadius;
+                            p.RightSideRadius = maxLeftRadius;
                         }else
                         {
-                            p.RightRadius = maxRightRadiusPositive;
+                            p.RightSideRadius = maxRightRadiusPositive;
                         }
                     else
                     {
-                        p.RightRadius = maxRightRadiusNegative;
+                        p.RightSideRadius = maxRightRadiusNegative;
                     }
                     txtLeftRadius.Enabled = false;
                     txtRightRadius.Enabled = false;
-                    txtLeftRadius.Text = p.LeftRadius.ToString(CI);
-                    txtRightRadius.Text = p.RightRadius.ToString(CI);
+                    txtLeftRadius.Text = p.LeftSideRadius.ToString(CI);
+                    txtRightRadius.Text = p.RightSideRadius.ToString(CI);
                 } else {                     
                     txtLeftRadius.Enabled = true;
                     txtRightRadius.Enabled = true;
@@ -609,5 +643,65 @@ namespace gCodeGeneratorWinForms
             g.DrawString("■ Feed", font, new SolidBrush(Color.FromArgb(80, 160, 255)), 5, 20);
             g.DrawString("■ Arc", font, new SolidBrush(Color.FromArgb(80, 220, 160)), 5, 35);
         }
+
+        private void CheckTimer(Action act)
+        {
+            if (_typingTimer == null)
+            {
+                _typingTimer = new System.Windows.Forms.Timer { Interval = 500 };
+                _typingTimer.Tick += (sender, args) =>
+                {
+                    if (!(sender is System.Windows.Forms.Timer timer))
+                        return;
+                    act?.Invoke();
+                    timer.Stop();
+                };
+            }
+            _typingTimer.Stop();
+            _typingTimer.Start();
+        }
     }
+
+    public class ButtonNoPadding : Button
+    {
+
+        private string _textCurrent;
+
+        private string _Text;
+
+
+        [Category("Appearance")]
+        public override string Text
+        {
+            get { return _Text; }
+            set
+            {
+                if (value != _Text)
+                {
+                    _Text = value;
+                    Invalidate();
+                }
+            }
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            _textCurrent = Text;
+            _Text = string.Empty;
+            base.OnPaint(e);
+            _Text = _textCurrent;
+
+            using (var brush = new SolidBrush(ForeColor))
+            {
+                using (var stringFormat = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+                {
+                    e.Graphics.DrawString(Text, Font, brush, Rectangle.Inflate(ClientRectangle, -2, -2), stringFormat);
+                }
+            }
+
+        }
+
+    }
+
+
 }

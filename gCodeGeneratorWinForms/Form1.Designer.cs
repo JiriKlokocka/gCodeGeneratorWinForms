@@ -34,7 +34,8 @@
             txtFileName = new TextBox();
             chkLeftChamfer = new CheckBox();
             chkRightChamfer = new CheckBox();
-            chkAutoRadii = new CheckBox();
+            chkAutoRadiuses = new CheckBox();
+            chkLastCutTest = new CheckBox();
             chkShowArrows = new CheckBox();
             ((System.ComponentModel.ISupportInitialize)splitMain).BeginInit();
             splitMain.Panel1.SuspendLayout();
@@ -60,7 +61,7 @@
             // 
             splitMain.Panel2.Controls.Add(splitRight);
             splitMain.Size = new Size(1373, 819);
-            splitMain.SplitterDistance = 448;
+            splitMain.SplitterDistance = 480;
             splitMain.TabIndex = 0;
             // 
             // panelInputs
@@ -71,7 +72,7 @@
             panelInputs.Location = new Point(0, 0);
             panelInputs.Name = "panelInputs";
             panelInputs.Padding = new Padding(8);
-            panelInputs.Size = new Size(448, 819);
+            panelInputs.Size = new Size(480, 819);
             panelInputs.TabIndex = 0;
             // 
             // splitRight
@@ -222,19 +223,26 @@
             chkRightChamfer.Size = new Size(104, 24);
             chkRightChamfer.TabIndex = 0;
             // 
-            // chkAutoRadii
+            // chkAutoRadiuses
             // 
-            chkAutoRadii.Location = new Point(0, 0);
-            chkAutoRadii.Name = "chkAutoRadii";
-            chkAutoRadii.Size = new Size(104, 24);
-            chkAutoRadii.TabIndex = 0;
+            chkAutoRadiuses.Location = new Point(0, 0);
+            chkAutoRadiuses.Name = "chkAutoRadiuses";
+            chkAutoRadiuses.Size = new Size(104, 24);
+            chkAutoRadiuses.TabIndex = 0;
             // 
             // chkShowArrows
             // 
             chkShowArrows.Location = new Point(0, 0);
-            chkShowArrows.Name = "chkAutoRadii";
+            chkShowArrows.Name = "chkShowArrows";
             chkShowArrows.Size = new Size(104, 24);
             chkShowArrows.TabIndex = 0;
+            // 
+            // chkLastCutTest
+            // 
+            chkLastCutTest.Location = new Point(0, 0);
+            chkLastCutTest.Name = "chkLastCutTest";
+            chkLastCutTest.Size = new Size(104, 24);
+            chkLastCutTest.TabIndex = 0;
             // 
             // Form1
             // 
@@ -265,7 +273,7 @@
         private TextBox txtLength, txtInitialDiameter, txtTargetDiameter;
         private TextBox txtCut, txtRoughFeed, txtFinishFeed;
         private TextBox txtLeftRadius, txtRightRadius, txtClear, txtFileName;
-        private CheckBox chkLeftChamfer, chkRightChamfer, chkAutoRadii, chkShowArrows;
+        private CheckBox chkLeftChamfer, chkRightChamfer, chkAutoRadiuses, chkShowArrows, chkLastCutTest;
         private Label lblMaxLeftRadius, lblMaxRightRadius;
     }
 }
