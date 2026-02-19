@@ -575,8 +575,11 @@ namespace gCodeGeneratorWinForms
             float minX = _segments.Min(s => Math.Min(s.Start.X, s.End.X));
             float maxX = _segments.Max(s => Math.Max(s.Start.X, s.End.X));
 
-            float padX = panelViewer.Width * 0.08f;
-            float padY = panelViewer.Height * 0.08f;
+            const float labelMarginLeft = 28f;   // px reserved for X-axis (left) labels
+            const float labelMarginBottom = 18f; // px reserved for Z-axis (bottom) labels
+
+            float padX = panelViewer.Width * 0.08f + labelMarginLeft;
+            float padY = panelViewer.Height * 0.08f + labelMarginBottom;
             float scaleX = (panelViewer.Width - 2 * padX) / Math.Max(maxZ - minZ, 0.001f);
             float scaleY = (panelViewer.Height - 2 * padY) / Math.Max(maxX - minX, 0.001f);
             float scale = Math.Min(scaleX, scaleY);
@@ -592,12 +595,48 @@ namespace gCodeGeneratorWinForms
                 (p.X - minX) * scale + padY                            // X: 0 at top, grows downward
             );
 
-            // Grid
+            // Grid + axis labels
             using var gridPen = new Pen(Color.FromArgb(50, 50, 50), 1);
+            using var labelFont = new Font("Consolas", 7f);
+            using var labelBrush = new SolidBrush(Color.FromArgb(140, 140, 140));
+            var labelFmt = new StringFormat { Alignment = StringAlignment.Far, LineAlignment = StringAlignment.Center };
+            var bottomFmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near };
+
+            // Determine sensible label step to avoid crowding (aim for ~20px min spacing)
+            float mmPerPixel = 1f / scale;
+            int labelStep = 100;
+            foreach (int step in new[] { 1, 2, 5, 10, 20, 50, 100 })
+            {
+                if (step * scale >= 20f) { labelStep = step; break; }
+            }
+
+            float plotBottom = ToScreen(new PointF(maxX, minZ)).Y; // screen Y of the bottom of the plot area
+            float plotLeft   = ToScreen(new PointF(minX, minZ)).X; // screen X of the left of the plot area
+
             for (float gz = (float)Math.Floor(minZ); gz <= maxZ + 1; gz++)
+            {
                 g.DrawLine(gridPen, ToScreen(new PointF(minX, gz)), ToScreen(new PointF(maxX, gz)));
+                // Bottom labels: Z values (horizontal axis)
+                int igz = (int)Math.Round(gz);
+                if (igz % labelStep == 0)
+                {
+                    float screenX = ToScreen(new PointF(minX, gz)).X;
+                    g.DrawString(igz.ToString(), labelFont, labelBrush,
+                        screenX, plotBottom + 3f, bottomFmt);
+                }
+            }
             for (float gx = (float)Math.Floor(minX); gx <= maxX + 1; gx++)
+            {
                 g.DrawLine(gridPen, ToScreen(new PointF(gx, minZ)), ToScreen(new PointF(gx, maxZ)));
+                // Left labels: X values (vertical axis)
+                int igx = (int)Math.Round(gx);
+                if (igx % labelStep == 0)
+                {
+                    float screenY = ToScreen(new PointF(gx, minZ)).Y;
+                    g.DrawString(igx.ToString(), labelFont, labelBrush,
+                        plotLeft - 4f, screenY, labelFmt);
+                }
+            }
 
             // Centerline — X=0 horizontal line at top (lathe center axis)
             using var axisPen = new Pen(Color.FromArgb(120, 120, 120), 1) { DashStyle = System.Drawing.Drawing2D.DashStyle.Dash };
