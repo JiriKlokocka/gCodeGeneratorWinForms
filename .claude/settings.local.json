@@ -5,7 +5,9 @@
       "Bash(git -C \"C:\\\\VSProjects\\\\gCodeGeneratorWinForms\\\\.claude\\\\worktrees\\\\sweet-merkle\" log --oneline -5)",
       "Bash(git -C \"C:\\\\VSProjects\\\\gCodeGeneratorWinForms\\\\.claude\\\\worktrees\\\\sweet-merkle\" log --oneline origin/claude/sweet-merkle..HEAD)",
       "Bash(git -C \"C:\\\\VSProjects\\\\gCodeGeneratorWinForms\\\\.claude\\\\worktrees\\\\sweet-merkle\" add CLAUDE.md .claude/)",
-      "Bash(git -C \"C:\\\\VSProjects\\\\gCodeGeneratorWinForms\\\\.claude\\\\worktrees\\\\sweet-merkle\" commit -m \"$\\(cat <<''EOF''\nAdd CLAUDE.md project documentation and Claude config\n\nDocuments architecture, domain knowledge \\(lathe coordinate system,\nG-code conventions, TurningParameters\\), generation logic, 2D viewer,\nbuild instructions, and common pitfalls for AI-assisted development.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git -C \"C:\\\\VSProjects\\\\gCodeGeneratorWinForms\\\\.claude\\\\worktrees\\\\sweet-merkle\" commit -m \"$\\(cat <<''EOF''\nAdd CLAUDE.md project documentation and Claude config\n\nDocuments architecture, domain knowledge \\(lathe coordinate system,\nG-code conventions, TurningParameters\\), generation logic, 2D viewer,\nbuild instructions, and common pitfalls for AI-assisted development.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(dotnet build:*)",
+      "Bash(git -C /c/VSProjects/gCodeGeneratorWinForms log --oneline -10)"
     ]
   }
 }

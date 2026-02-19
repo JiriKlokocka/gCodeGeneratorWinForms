@@ -29,15 +29,88 @@ namespace gCodeGeneratorWinForms
         // Use InvariantCulture everywhere so decimal dot works regardless of locale (e.g. Czech)
         private static readonly CultureInfo CI = CultureInfo.InvariantCulture;
 
+        private static readonly string SettingsPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "gCodeGeneratorWinForms",
+            "settings.json"
+        );
+
         public Form1()
         {
             InitializeComponent();
+        }
+
+        // ─── SETTINGS PERSISTENCE ────────────────────────────────────────────
+        private void SaveSettings()
+        {
+            try
+            {
+                string? dir = Path.GetDirectoryName(SettingsPath);
+                if (!string.IsNullOrEmpty(dir))
+                    Directory.CreateDirectory(dir);
+                var options = new System.Text.Json.JsonSerializerOptions { WriteIndented = true };
+                string json = System.Text.Json.JsonSerializer.Serialize(parameters, options);
+                File.WriteAllText(SettingsPath, json, System.Text.Encoding.UTF8);
+            }
+            catch { /* Swallow silently — never show error dialog on close */ }
+        }
+
+        private TurningParameters? LoadSettings()
+        {
+            try
+            {
+                if (!File.Exists(SettingsPath)) return null;
+                string json = File.ReadAllText(SettingsPath, System.Text.Encoding.UTF8);
+                return System.Text.Json.JsonSerializer.Deserialize<TurningParameters>(json);
+            }
+            catch { return null; }
+        }
+
+        private void PopulateControls(TurningParameters p)
+        {
+            // Unsubscribe to suppress redundant UpdateAll() calls during population
+            TextBox[] texts = { txtLength, txtInitialDiameter, txtTargetDiameter,
+                                txtCut, txtRoughFeed, txtFinishFeed,
+                                txtLeftRadius, txtRightRadius, txtClear, txtFileName };
+            CheckBox[] checks = { chkLeftChamfer, chkRightChamfer, chkAutoRadii, chkShowArrows };
+
+            foreach (var t in texts)  t.TextChanged    -= AnyInput_Changed;
+            foreach (var c in checks) c.CheckedChanged -= AnyCheck_Changed;
+
+            txtLength.Text          = p.Length.ToString(CI);
+            txtInitialDiameter.Text = p.InitialDiameter.ToString(CI);
+            txtTargetDiameter.Text  = p.TargetDiameter.ToString(CI);
+            txtCut.Text             = p.Cut.ToString(CI);
+            txtRoughFeed.Text       = p.RoughFeed.ToString(CI);
+            txtFinishFeed.Text      = p.FinishFeed.ToString(CI);
+            txtLeftRadius.Text      = p.LeftRadius.ToString(CI);
+            txtRightRadius.Text     = p.RightRadius.ToString(CI);
+            txtClear.Text           = p.Clear.ToString(CI);
+            txtFileName.Text        = p.FileName;
+
+            chkLeftChamfer.Checked  = p.LeftChamfer;
+            chkRightChamfer.Checked = p.RightChamfer;
+            chkAutoRadii.Checked    = p.AutoRadies;
+            chkShowArrows.Checked   = p.ShowArrows;
+
+            foreach (var t in texts)  t.TextChanged    += AnyInput_Changed;
+            foreach (var c in checks) c.CheckedChanged += AnyCheck_Changed;
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            base.OnFormClosing(e);
+            SaveSettings();
         }
 
         // ─── FORM LOAD ────────────────────────────────────────────────────────
         private void Form1_Load(object sender, EventArgs e)
         {
             BuildInputPanel();
+
+            TurningParameters? saved = LoadSettings();
+            if (saved != null)
+                PopulateControls(saved);
         }
 
         protected override void OnShown(EventArgs e)

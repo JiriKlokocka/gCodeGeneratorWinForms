@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.Json.Serialization;
 
 namespace gCodeGeneratorWinForms
 {
@@ -26,7 +27,7 @@ namespace gCodeGeneratorWinForms
         public bool RightChamfer { get; set; } = false;
         public bool AutoRadies { get; set; } = false;
         public bool ShowArrows { get; set; } = true;
-
+        [JsonIgnore]
         public int LastCutTest { get; set; } = 1;
         public double Clear { get; set; } = 5.0;
         public string FileName { get; set; } = @"C:\Mach3\GCode\_myFile.gcode";
