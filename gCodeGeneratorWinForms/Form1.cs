@@ -182,6 +182,14 @@ namespace gCodeGeneratorWinForms
                 btnMinus.ForeColor = Color.Silver;
                 btnMinus.Font = new Font("Segoe UI", 7.5f, FontStyle.Bold);//+
                 btnMinus.FlatStyle = FlatStyle.Flat;
+                //if(parameters.AutoRadiuses)
+                //{
+                //    if(txt.Name == "txtLeftRadius" || txt.Name == "txtRightRadius")
+                //    {
+                //        btnPlus.Enabled = false;
+                //        btnMinus.Enabled = false;
+                //    }
+                //}
                 btnMinus.Click += (object? sender, EventArgs e) => { txt.Text = (Math.Round(double.Parse(txt.Text, CI) - 0.1, 2)).ToString(CI); };
 
                 txt.Text = defaultVal;
@@ -209,6 +217,43 @@ namespace gCodeGeneratorWinForms
                     secondLabel.Location = new Point(lbl.Location.X + lbl.Size.Width + 6, lbl.Location.Y);
                     secondLabel.AutoSize = true;
                     panelInputs.Controls.Add(secondLabel);
+                }
+
+                if(txt.Name == "txtRightRadius")
+                {
+                    ButtonNoPadding btnFlipRightRadius = new ButtonNoPadding();
+                    if (double.Parse(txt.Text, CI) >= 0)
+                    {
+                        
+                        
+                        btnFlipRightRadius.Text = "Make Negative";
+                    }
+                    else
+                    {
+                        
+                        btnFlipRightRadius.Text = "Make Positive";
+                    }
+                    btnFlipRightRadius.Location = new Point(leftPadding, row + rowH);
+                    btnFlipRightRadius.AutoSize = true;
+                    btnFlipRightRadius.BackColor = Color.FromArgb(30, 30, 30);
+                    btnFlipRightRadius.ForeColor = Color.Silver;
+                    btnFlipRightRadius.Font = new Font("Segoe UI", 7.5f, FontStyle.Bold);//+
+                    btnFlipRightRadius.FlatStyle = FlatStyle.Flat;
+                    btnFlipRightRadius.Click += (object? sender, EventArgs e) => {
+                        if (double.Parse(txt.Text, CI) >= 0)
+                        {
+                            txt.Text = (-double.Parse(txt.Text, CI)).ToString(CI);
+                            btnFlipRightRadius.Text = "Make Positive";
+                        } else
+                        {
+                            txt.Text = (-double.Parse(txt.Text, CI)).ToString(CI);
+                            btnFlipRightRadius.Text = "Make Negative";
+                        }
+                            
+                    };
+                    //btnFlipRightRadius.Text = parameters.RoughFeed.ToString();
+                    panelInputs.Controls.Add(btnFlipRightRadius);
+                    row += rowH;
                 }
 
                 panelInputs.Controls.Add(btnPlus);
