@@ -32,6 +32,8 @@
             txtRightRadius = new TextBox();
             txtClear = new TextBox();
             txtFileName = new TextBox();
+            txtIoSenderPath = new TextBox();
+            chkOpenInIoSender = new CheckBox();
             chkLeftChamfer = new CheckBox();
             chkRightChamfer = new CheckBox();
             chkAutoRadiuses = new CheckBox();
@@ -254,12 +256,26 @@
             chkShowMaterial.TabIndex = 0;
             //
             // chkLastCutTest
-            // 
+            //
             chkLastCutTest.Location = new Point(0, 0);
             chkLastCutTest.Name = "chkLastCutTest";
             chkLastCutTest.Size = new Size(104, 24);
             chkLastCutTest.TabIndex = 0;
-            // 
+            //
+            // txtIoSenderPath
+            //
+            txtIoSenderPath.Location = new Point(0, 0);
+            txtIoSenderPath.Name = "txtIoSenderPath";
+            txtIoSenderPath.Size = new Size(100, 23);
+            txtIoSenderPath.TabIndex = 0;
+            //
+            // chkOpenInIoSender
+            //
+            chkOpenInIoSender.Location = new Point(0, 0);
+            chkOpenInIoSender.Name = "chkOpenInIoSender";
+            chkOpenInIoSender.Size = new Size(104, 24);
+            chkOpenInIoSender.TabIndex = 0;
+            //
             // Form1
             // 
             BackColor = Color.FromArgb(37, 37, 38);
@@ -288,8 +304,8 @@
         private Button btnSave;
         private TextBox txtLength, txtInitialDiameter, txtTargetDiameter;
         private TextBox txtCut, txtRoughFeed, txtFinishFeed;
-        private TextBox txtLeftRadius, txtRightRadius, txtClear, txtFileName;
-        private CheckBox chkLeftChamfer, chkRightChamfer, chkAutoRadiuses, chkShowArrows, chkLastCutTest, chkSymmetricDisplay, chkShowMaterial;
+        private TextBox txtLeftRadius, txtRightRadius, txtClear, txtFileName, txtIoSenderPath;
+        private CheckBox chkLeftChamfer, chkRightChamfer, chkAutoRadiuses, chkShowArrows, chkLastCutTest, chkSymmetricDisplay, chkShowMaterial, chkOpenInIoSender;
         private Label lblMaxLeftRadius, lblMaxRightRadius;
     }
 }

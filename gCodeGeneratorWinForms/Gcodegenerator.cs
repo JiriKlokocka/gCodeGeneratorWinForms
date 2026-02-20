@@ -1,5 +1,4 @@
 ﻿using System.Text;
-using System.Text.Json.Serialization;
 
 namespace gCodeGeneratorWinForms
 {
@@ -11,7 +10,7 @@ namespace gCodeGeneratorWinForms
     {
         private readonly TurningParameters p;
 
-        public GCodeGenerator(TurningParameters parameters)
+        public GCodeGenerator(TurningParameters parameters, ProgramParameters programParameters)
         {
             p = parameters;
         }
@@ -42,7 +41,7 @@ namespace gCodeGeneratorWinForms
             for (int i = 0; i <= mainSteps; i++)
             {
                 double act = i * cut;
-                if (depth - act < p.LeftSideRadius)
+                if (depth - act < Math.Abs(p.LeftSideRadius))
                 {
                     leftOffset = Math.Abs(act - depth) + cut;
                     break;
@@ -159,34 +158,27 @@ namespace gCodeGeneratorWinForms
                 // ══════════════════════════════════════════════════════════════
                 W(";-) Left Radius or Chamfer");
 
-                if (depth - actDepth < p.LeftSideRadius)
+                if (depth - actDepth < Math.Abs(p.LeftSideRadius))
                 {
-                    W($"g1 z{R(-(p.Length - p.LeftSideRadius))}"); // arc start point
-
-                    if (((i == mainSteps) || (p.LeftSideRadius < cut)) && p.LastCutTest == true)
+                    var leftArcStartPoint = -(p.Length - Math.Abs(p.LeftSideRadius));
+                    //leftArcStartPoint += (((mainSteps - i) * (cut))); // Shift arc start point for better toolpath on bigger radii
+                    W($"g1 z{R(leftArcStartPoint )}"); // arc start point
+              
+                    if (p.LeftSideIsChamfer)
                     {
-                        // Last cut OR leftRadius smaller than cut step
-                        if (!p.LeftSideIsChamfer && p.LeftSideRadius > 0)
-                        {
-                            W($"G02 z{R(-p.Length)} x{R(initialRadius - (depth - p.LeftSideRadius))} I{R(p.LeftSideRadius)} K0");
-                        }
-                        else
-                        {
-                            W($"G01 z{R(-p.Length)} x-{R(depth - p.LeftSideRadius)}");
-                        }
+                        W($"G01 z{R(-(p.Length - leftOffset + (m * cut)))} x{R(initialRadius - (depth - Math.Abs(p.LeftSideRadius)))}");
                     }
                     else
                     {
-                        if (!p.LeftSideIsChamfer && p.LeftSideRadius > 0)
+                        if(p.LeftSideRadius >= 0)
                         {
                             W($"G02 z{R(-(p.Length - leftOffset + (m * cut)))} x{R(initialRadius - (depth - p.LeftSideRadius))} I{R(actDepth - (depth - p.LeftSideRadius))} K0");
                         }
                         else
                         {
-                            W($"G01 z{R(-(p.Length - leftOffset + (m * cut)))} x{R(initialRadius - (depth - p.LeftSideRadius))}");
+                            W($"G03 z{R(-(p.Length - leftOffset + (m * cut)))} x{R(initialRadius - (depth - Math.Abs(p.LeftSideRadius)))} I0 K{R(-(actDepth - (depth - Math.Abs(p.LeftSideRadius))))}");
                         }
                     }
-
                     m++;
                 }
                 else
@@ -212,3 +204,19 @@ namespace gCodeGeneratorWinForms
         }
     }
 }
+
+/*if (((i == mainSteps) || (p.LeftSideRadius < cut)) && p.LastCutTest == true)
+          {
+              // Last cut OR leftRadius smaller than cut step
+              if (!p.LeftSideIsChamfer && p.LeftSideRadius > 0)
+              {
+                  W($"G02 z{R(-p.Length)} x{R(initialRadius - (depth - p.LeftSideRadius))} I{R(p.LeftSideRadius)} K0");
+              }
+              else
+              {
+                  W($"G01 z{R(-p.Length)} x-{R(depth - p.LeftSideRadius)}");
+              }
+          }
+          else
+          {
+}*/

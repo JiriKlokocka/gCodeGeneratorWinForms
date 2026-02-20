@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Text.Json.Serialization;
 
 namespace gCodeGeneratorWinForms
 {
@@ -19,7 +18,7 @@ namespace gCodeGeneratorWinForms
         public double RoughFeed { get; set; } = 200;
         public double FinishFeed { get; set; } = 150;
 
-        public double LeftSideRadius { get; set; } = 5.0;  // Cannot be greater than depth
+        public double LeftSideRadius { get; set; } = 5.0;  // Abs cannot be greater than depth
         public bool LeftSideIsChamfer { get; set; } = false; // true = chamfer instead of arc
 
         // RightRadius: positive = outer radius, negative = inner radius
@@ -29,14 +28,5 @@ namespace gCodeGeneratorWinForms
         public bool RightSideIsChamfer { get; set; } = false;
         public bool AutoRadiuses { get; set; } = false;
         public double Clearance { get; set; } = 5.0;
-
-
-        public bool ShowArrows { get; set; } = true;
-        public bool SymmetricDisplay { get; set; } = false;
-        public bool ShowMaterial { get; set; } = true;
-        [JsonIgnore]
-        public bool LastCutTest { get; set; } = false;
-
-        public string FileName { get; set; } = @"C:\Mach3\GCode\_myFile.gcode";
     }
 }

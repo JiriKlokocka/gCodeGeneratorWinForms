@@ -15,8 +15,9 @@ namespace gCodeGeneratorWinForms
         private System.Windows.Forms.Timer _typingTimer;
 
         private TurningParameters parameters =  new TurningParameters();
+        private ProgramParameters programParameters = new ProgramParameters();
 
-        
+
 
         private List<Segment> _segments = new();
         private int _lastPassStartIndex = -1;
@@ -29,6 +30,12 @@ namespace gCodeGeneratorWinForms
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "gCodeGeneratorWinForms",
             "settings.json"
+        );
+
+        private static readonly string ProgramSettingsPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "gCodeGeneratorWinForms",
+            "program_settings.json"
         );
 
         public Form1()
@@ -62,13 +69,38 @@ namespace gCodeGeneratorWinForms
             catch { return null; }
         }
 
+        private void SaveProgramSettings()
+        {
+            try
+            {
+                string? dir = Path.GetDirectoryName(ProgramSettingsPath);
+                if (!string.IsNullOrEmpty(dir))
+                    Directory.CreateDirectory(dir);
+                var options = new System.Text.Json.JsonSerializerOptions { WriteIndented = true };
+                string json = System.Text.Json.JsonSerializer.Serialize(programParameters, options);
+                File.WriteAllText(ProgramSettingsPath, json, System.Text.Encoding.UTF8);
+            }
+            catch { /* Swallow silently — never show error dialog on close */ }
+        }
+
+        private ProgramParameters? LoadProgramSettings()
+        {
+            try
+            {
+                if (!File.Exists(ProgramSettingsPath)) return null;
+                string json = File.ReadAllText(ProgramSettingsPath, System.Text.Encoding.UTF8);
+                return System.Text.Json.JsonSerializer.Deserialize<ProgramParameters>(json);
+            }
+            catch { return null; }
+        }
+
         private void PopulateControls(TurningParameters p)
         {
             // Unsubscribe to suppress redundant UpdateAll() calls during population
             TextBox[] texts = { txtLength, txtInitialDiameter, txtTargetDiameter,
                                 txtCut, txtRoughFeed, txtFinishFeed,
-                                txtLeftRadius, txtRightRadius, txtClear, txtFileName };
-            CheckBox[] checks = { chkLeftChamfer, chkRightChamfer, chkAutoRadiuses, chkShowArrows, chkSymmetricDisplay, chkShowMaterial };
+                                txtLeftRadius, txtRightRadius, txtClear };
+            CheckBox[] checks = { chkLeftChamfer, chkRightChamfer, chkAutoRadiuses };
 
             foreach (var t in texts)  t.TextChanged    -= AnyInput_Changed;
             foreach (var c in checks) c.CheckedChanged -= AnyCheck_Changed;
@@ -82,24 +114,41 @@ namespace gCodeGeneratorWinForms
             txtLeftRadius.Text      = p.LeftSideRadius.ToString(CI);
             txtRightRadius.Text     = p.RightSideRadius.ToString(CI);
             txtClear.Text           = p.Clearance.ToString(CI);
-            txtFileName.Text        = p.FileName;
 
             chkLeftChamfer.Checked  = p.LeftSideIsChamfer;
             chkRightChamfer.Checked = p.RightSideIsChamfer;
-            chkAutoRadiuses.Checked    = p.AutoRadiuses;
-            chkShowArrows.Checked        = p.ShowArrows;
-            chkSymmetricDisplay.Checked  = p.SymmetricDisplay;
-            chkShowMaterial.Checked      = p.ShowMaterial;
+            chkAutoRadiuses.Checked = p.AutoRadiuses;
 
             foreach (var t in texts)  t.TextChanged    += AnyInput_Changed;
             foreach (var c in checks) c.CheckedChanged += AnyCheck_Changed;
             parameters = p;
         }
 
+        private void PopulateControls(ProgramParameters p)
+        {
+            CheckBox[] checks = { chkShowArrows, chkSymmetricDisplay, chkShowMaterial, chkOpenInIoSender };
+            foreach (var c in checks) c.CheckedChanged -= AnyCheck_Changed;
+            txtFileName.TextChanged     -= AnyInput_Changed;
+            txtIoSenderPath.TextChanged -= AnyInput_Changed;
+
+            chkShowArrows.Checked        = p.ShowArrows;
+            chkSymmetricDisplay.Checked  = p.SymmetricDisplay;
+            chkShowMaterial.Checked      = p.ShowMaterial;
+            txtFileName.Text             = p.FileName;
+            txtIoSenderPath.Text         = p.IoSenderPath;
+            chkOpenInIoSender.Checked    = p.OpenFileInIoSender;
+
+            foreach (var c in checks) c.CheckedChanged += AnyCheck_Changed;
+            txtFileName.TextChanged     += AnyInput_Changed;
+            txtIoSenderPath.TextChanged += AnyInput_Changed;
+            programParameters = p;
+        }
+
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             base.OnFormClosing(e);
             SaveSettings();
+            SaveProgramSettings();
         }
 
         // ─── FORM LOAD ────────────────────────────────────────────────────────
@@ -110,6 +159,10 @@ namespace gCodeGeneratorWinForms
             TurningParameters? saved = LoadSettings();
             if (saved != null)
                 PopulateControls(saved);
+
+            ProgramParameters? savedProg = LoadProgramSettings();
+            if (savedProg != null)
+                PopulateControls(savedProg);
         }
 
         protected override void OnShown(EventArgs e)
@@ -117,9 +170,9 @@ namespace gCodeGeneratorWinForms
             base.OnShown(e);
 
             // Set splitter distances after form is fully rendered
-            splitMain.Panel1MinSize = 300;
+            splitMain.Panel1MinSize = 250;
             splitMain.Panel2MinSize = 400;
-            splitMain.SplitterDistance = 220;
+            splitMain.SplitterDistance = 250;
 
             splitRight.Panel1MinSize = 100;
             splitRight.Panel2MinSize = 150;
@@ -141,7 +194,8 @@ namespace gCodeGeneratorWinForms
         {
             int row = 8;
             int rowH = 32;
-            int inpuTxtWidth = 45;
+            int inpuTxtWidthNumeric = 45;
+            int inpuTxtWidthText = 200;
             int leftPadding = 8;
 
             void AddHeader(string text)
@@ -158,7 +212,7 @@ namespace gCodeGeneratorWinForms
                 row += 22;
             }
 
-            void AddRow(string labelText, TextBox txt, string defaultVal, Label? secondLabel = null)
+            void AddNumericInputRow(string labelText, TextBox txt, string defaultVal, Label? secondLabel = null)
             {
                 ButtonNoPadding btnPlus = new ButtonNoPadding();
                 btnPlus.Text = "▲";
@@ -190,7 +244,7 @@ namespace gCodeGeneratorWinForms
 
                 txt.Text = defaultVal;
                 txt.Location = new Point(+leftPadding + btnPlus.Size.Width + 2, row);
-                txt.Size = new Size(inpuTxtWidth, 25);
+                txt.Size = new Size(inpuTxtWidthNumeric, 25);
                 txt.Font = new Font("Consolas", 9.5f);
                 txt.BackColor = Color.FromArgb(30, 30, 30);
                 txt.ForeColor = Color.White;
@@ -202,7 +256,7 @@ namespace gCodeGeneratorWinForms
                     Text = labelText,
                     ForeColor = Color.FromArgb(200, 200, 200),
                     Font = new Font("Segoe UI", 8.5f),
-                    Location = new Point(txt.Location.X + inpuTxtWidth + 2, row+3),
+                    Location = new Point(txt.Location.X + inpuTxtWidthNumeric + 2, row+3),
                     //Size = new Size(204, 18),
                     AutoSize = true
                 };
@@ -260,6 +314,32 @@ namespace gCodeGeneratorWinForms
                 row += rowH;
             }
 
+            void AddTextInputRow(string labelText, TextBox txt, string defaultVal)
+            {
+                var lbl = new Label
+                {
+                    Text = labelText,
+                    ForeColor = Color.FromArgb(200, 200, 200),
+                    Font = new Font("Segoe UI", 8.5f),
+                    Location = new Point(leftPadding, row),
+                    //Size = new Size(204, 18),
+                    AutoSize = true
+                };
+                txt.Text = defaultVal;
+                txt.Location = new Point(leftPadding, row + 15);
+                txt.Size = new Size(230, 25);
+                txt.Font = new Font("Consolas", 9.5f);
+                txt.BackColor = Color.FromArgb(30, 30, 30);
+                txt.ForeColor = Color.White;
+                txt.TextChanged += AnyInput_Changed;
+                txt.BorderStyle = BorderStyle.FixedSingle;
+
+                
+                panelInputs.Controls.Add(txt);
+                panelInputs.Controls.Add(lbl);
+                row += (rowH + 15);
+            }
+
             void AddCheck(CheckBox chk, string text)
             {
                 chk.Text = text;
@@ -269,44 +349,47 @@ namespace gCodeGeneratorWinForms
                 chk.Font = new Font("Segoe UI", 8.5f);
                 chk.CheckedChanged += AnyCheck_Changed;
                 panelInputs.Controls.Add(chk);
-                row += 28;
+                row += rowH-10;
             }
 
             // ─ Dimensions ────────────────────────────────────────────────────
             AddHeader("── Dimensions ──");
-            AddRow("Length (mm)", txtLength, "20");
-            AddRow("Initial Diameter (mm)", txtInitialDiameter, "20");
-            AddRow("Target Diameter (mm)", txtTargetDiameter, "10");
+            AddNumericInputRow("Length (mm)", txtLength, "20");
+            AddNumericInputRow("Initial Diameter (mm)", txtInitialDiameter, "20");
+            AddNumericInputRow("Target Diameter (mm)", txtTargetDiameter, "10");
 
             // ─ Cutting ───────────────────────────────────────────────────────
             AddHeader("── Cutting ──");
-            AddRow("Cut per pass (mm)", txtCut, "0.5");
-            AddRow("Rough Feed (mm/min)", txtRoughFeed, "200");
-            AddRow("Finish Feed (mm/min)", txtFinishFeed, "150");
+            AddNumericInputRow("Cut per pass (mm)", txtCut, "0.5");
+            AddNumericInputRow("Rough Feed (mm/min)", txtRoughFeed, "200");
+            AddNumericInputRow("Finish Feed (mm/min)", txtFinishFeed, "150");
 
             // ─ Left Side ─────────────────────────────────────────────────────
             AddHeader("── Left Side ──");
-            AddRow("Left Radius (mm)", txtLeftRadius, "5",lblMaxLeftRadius);
+            AddNumericInputRow("Left Radius (mm)", txtLeftRadius, "5",lblMaxLeftRadius);
             AddCheck(chkLeftChamfer, "Left Chamfer (instead of arc)");
 
             // ─ Right Side ────────────────────────────────────────────────────
             AddHeader("── Right Side ──");
-            AddRow("+ outer / - inner", txtRightRadius, "5", lblMaxRightRadius);
+            AddNumericInputRow("+ outer / - inner", txtRightRadius, "5", lblMaxRightRadius);
             AddCheck(chkRightChamfer, "Right Chamfer (instead of arc)");
 
             // ─ Other ─────────────────────────────────────────────────────────
             AddHeader("── Other ──");
-            AddRow("Clearance (mm)", txtClear, "5");
+            AddNumericInputRow("Clearance (mm)", txtClear, "5");
             AddCheck(chkAutoRadiuses, "Auto left and right radiuses");
             AddCheck(chkShowArrows, "Show arrows in graphic");
             AddCheck(chkSymmetricDisplay, "Symmetric display (Z=0 centred)");
             AddCheck(chkShowMaterial, "Show material");
             AddCheck(chkLastCutTest, "chkLastCutTest");
-            
+            chkLastCutTest.Enabled = false;
+
 
             // ─ Output ────────────────────────────────────────────────────────
             AddHeader("── Output ──");
-            AddRow("Output File Path", txtFileName, @"C:\Mach3\GCode\_myFile.gcode");
+            AddTextInputRow("Output File Path", txtFileName, @"C:\Mach3\GCode\_myFile.gcode");
+            AddTextInputRow("IoSender Path", txtIoSenderPath, "");
+            AddCheck(chkOpenInIoSender, "Open in IoSender after save");
 
             // ─ Save Button ───────────────────────────────────────────────────
             row += 8;
@@ -332,7 +415,7 @@ namespace gCodeGeneratorWinForms
                 if (!TryReadParameters(out parameters)) return;
                 try
                 {
-                    var gen = new GCodeGenerator(parameters);
+                    var gen = new GCodeGenerator(parameters, programParameters);
                     _gcode = gen.Generate();
 
                     txtGCode.Text = _gcode;
@@ -393,12 +476,14 @@ namespace gCodeGeneratorWinForms
                 p.RightSideRadius = double.Parse(txtRightRadius.Text, CI);
                 p.RightSideIsChamfer = chkRightChamfer.Checked;
                 p.AutoRadiuses = chkAutoRadiuses.Checked;
-                p.ShowArrows = chkShowArrows.Checked;
-                p.SymmetricDisplay = chkSymmetricDisplay.Checked;
-                p.ShowMaterial = chkShowMaterial.Checked;
-                p.LastCutTest = chkLastCutTest.Checked;
                 p.Clearance = double.Parse(txtClear.Text, CI);
-                p.FileName = txtFileName.Text;
+
+                programParameters.ShowArrows        = chkShowArrows.Checked;
+                programParameters.SymmetricDisplay  = chkSymmetricDisplay.Checked;
+                programParameters.ShowMaterial      = chkShowMaterial.Checked;
+                programParameters.FileName          = txtFileName.Text;
+                programParameters.IoSenderPath      = txtIoSenderPath.Text;
+                programParameters.OpenFileInIoSender = chkOpenInIoSender.Checked;
 
                 var maxLeftRadius = ((p.InitialDiameter - p.TargetDiameter) / 2);
                 var maxRightRadiusPositive = (p.TargetDiameter / 2);
@@ -455,11 +540,23 @@ namespace gCodeGeneratorWinForms
             try
             {
                 if (!TryReadParameters(out TurningParameters p)) return;
-                string? dir = Path.GetDirectoryName(p.FileName);
+                string? dir = Path.GetDirectoryName(programParameters.FileName);
                 if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
                     Directory.CreateDirectory(dir);
-                File.WriteAllText(p.FileName, _gcode, System.Text.Encoding.ASCII);
-                MessageBox.Show($"Saved to:\n{p.FileName}", "Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                File.WriteAllText(programParameters.FileName, _gcode, System.Text.Encoding.ASCII);
+                string appLaunch = Path.Combine(programParameters.IoSenderPath, "AppLaunch.exe");
+                bool ioSenderLaunched = false;
+                if (programParameters.OpenFileInIoSender
+                    && Directory.Exists(programParameters.IoSenderPath)
+                    && File.Exists(appLaunch))
+                {
+                    System.Diagnostics.Process.Start(appLaunch, $"\"{programParameters.FileName}\"");
+                    ioSenderLaunched = true;
+                }
+                string msg = $"Saved to:\n{programParameters.FileName}";
+                if (ioSenderLaunched) msg += "\nG-Code was also opened in IoSender";
+                //MessageBox.Show(msg, "Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                this.Close();
             }
             catch (Exception ex)
             {
@@ -487,7 +584,7 @@ namespace gCodeGeneratorWinForms
             float minX = _segments.Min(s => Math.Min(s.Start.X, s.End.X));
             float maxX = _segments.Max(s => Math.Max(s.Start.X, s.End.X));
 
-            if (parameters.SymmetricDisplay)
+            if (programParameters.SymmetricDisplay)
             {
                 float xExtent = Math.Max(Math.Abs(minX), Math.Abs(maxX));
                 minX = -xExtent;
@@ -579,7 +676,7 @@ namespace gCodeGeneratorWinForms
             //}
 
             // ── Material shape ────────────────────────────────────────────────
-            if (parameters.ShowMaterial && _lastPassStartIndex >= 0 && _segments.Count > 0)
+            if (programParameters.ShowMaterial && _lastPassStartIndex >= 0 && _segments.Count > 0)
             {
                 var profilePoints = new List<PointF>();
 
@@ -640,7 +737,7 @@ namespace gCodeGeneratorWinForms
                     g.DrawPolygon(matPen, screenPts);
 
                     // Mirror below X=0 axis when SymmetricDisplay is on
-                    if (parameters.SymmetricDisplay)
+                    if (programParameters.SymmetricDisplay)
                     {
                         var mirroredPts = profilePoints.Select(pt => ToScreen(new PointF(-pt.X, pt.Y))).ToArray();
                         g.FillPolygon(matBrush, mirroredPts);
@@ -654,12 +751,12 @@ namespace gCodeGeneratorWinForms
             float[] dashValues = { 2, 2 };
 
             using var rapidPen = new Pen(Color.FromArgb(200, 80, 80), 1.0f);
-            if(parameters.ShowArrows) rapidPen.CustomEndCap = arrow;
+            if(programParameters.ShowArrows) rapidPen.CustomEndCap = arrow;
             
             rapidPen.DashCap = System.Drawing.Drawing2D.DashCap.Round;
             rapidPen.DashPattern = dashValues;
             using var feedPen = new Pen(Color.FromArgb(80, 160, 255), 1.5f);
-            if (parameters.ShowArrows) feedPen.CustomEndCap = arrow;
+            if (programParameters.ShowArrows) feedPen.CustomEndCap = arrow;
             using var arcPen = new Pen(Color.FromArgb(80, 220, 160), 1.5f);
 
             if(_segments.Count > 1500)
@@ -686,7 +783,7 @@ namespace gCodeGeneratorWinForms
 
                             if (s == steps)
                             { 
-                                if (parameters.ShowArrows) arcPen.CustomEndCap = arrow; 
+                                if (programParameters.ShowArrows) arcPen.CustomEndCap = arrow; 
                             }
                             else
                             {
