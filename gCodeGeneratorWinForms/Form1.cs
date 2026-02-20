@@ -571,8 +571,8 @@ namespace gCodeGeneratorWinForms
                 }
                 string msg = $"Saved to:\n{programParameters.FileName}";
                 if (ioSenderLaunched) msg += "\nG-Code was also opened in IoSender";
-                //MessageBox.Show(msg, "Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                this.Close();
+                MessageBox.Show(msg, "Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                //this.Close();
             }
             catch (Exception ex)
             {
