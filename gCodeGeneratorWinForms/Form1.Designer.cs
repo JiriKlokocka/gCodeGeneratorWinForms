@@ -37,6 +37,7 @@
             chkAutoRadiuses = new CheckBox();
             chkLastCutTest = new CheckBox();
             chkShowArrows = new CheckBox();
+            chkSymmetricDisplay = new CheckBox();
             ((System.ComponentModel.ISupportInitialize)splitMain).BeginInit();
             splitMain.Panel1.SuspendLayout();
             splitMain.Panel2.SuspendLayout();
@@ -237,6 +238,13 @@
             chkShowArrows.Size = new Size(104, 24);
             chkShowArrows.TabIndex = 0;
             // 
+            // chkSymmetricDisplay
+            // 
+            chkSymmetricDisplay.Location = new Point(0, 0);
+            chkSymmetricDisplay.Name = "chkSymmetricDisplay";
+            chkSymmetricDisplay.Size = new Size(104, 24);
+            chkSymmetricDisplay.TabIndex = 0;
+            // 
             // chkLastCutTest
             // 
             chkLastCutTest.Location = new Point(0, 0);
@@ -273,7 +281,7 @@
         private TextBox txtLength, txtInitialDiameter, txtTargetDiameter;
         private TextBox txtCut, txtRoughFeed, txtFinishFeed;
         private TextBox txtLeftRadius, txtRightRadius, txtClear, txtFileName;
-        private CheckBox chkLeftChamfer, chkRightChamfer, chkAutoRadiuses, chkShowArrows, chkLastCutTest;
+        private CheckBox chkLeftChamfer, chkRightChamfer, chkAutoRadiuses, chkShowArrows, chkLastCutTest, chkSymmetricDisplay;
         private Label lblMaxLeftRadius, lblMaxRightRadius;
     }
 }

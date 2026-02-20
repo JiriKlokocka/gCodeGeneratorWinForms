@@ -67,7 +67,7 @@ namespace gCodeGeneratorWinForms
             TextBox[] texts = { txtLength, txtInitialDiameter, txtTargetDiameter,
                                 txtCut, txtRoughFeed, txtFinishFeed,
                                 txtLeftRadius, txtRightRadius, txtClear, txtFileName };
-            CheckBox[] checks = { chkLeftChamfer, chkRightChamfer, chkAutoRadiuses, chkShowArrows };
+            CheckBox[] checks = { chkLeftChamfer, chkRightChamfer, chkAutoRadiuses, chkShowArrows, chkSymmetricDisplay };
 
             foreach (var t in texts)  t.TextChanged    -= AnyInput_Changed;
             foreach (var c in checks) c.CheckedChanged -= AnyCheck_Changed;
@@ -86,7 +86,8 @@ namespace gCodeGeneratorWinForms
             chkLeftChamfer.Checked  = p.LeftSideIsChamfer;
             chkRightChamfer.Checked = p.RightSideIsChamfer;
             chkAutoRadiuses.Checked    = p.AutoRadiuses;
-            chkShowArrows.Checked   = p.ShowArrows;
+            chkShowArrows.Checked        = p.ShowArrows;
+            chkSymmetricDisplay.Checked  = p.SymmetricDisplay;
 
             foreach (var t in texts)  t.TextChanged    += AnyInput_Changed;
             foreach (var c in checks) c.CheckedChanged += AnyCheck_Changed;
@@ -296,6 +297,7 @@ namespace gCodeGeneratorWinForms
             AddRow("Clearance (mm)", txtClear, "5");
             AddCheck(chkAutoRadiuses, "Auto left and right radiuses");
             AddCheck(chkShowArrows, "Show arrows in graphic");
+            AddCheck(chkSymmetricDisplay, "Symmetric display (Z=0 centred)");
             AddCheck(chkLastCutTest, "chkLastCutTest");
             
 
@@ -389,6 +391,7 @@ namespace gCodeGeneratorWinForms
                 p.RightSideIsChamfer = chkRightChamfer.Checked;
                 p.AutoRadiuses = chkAutoRadiuses.Checked;
                 p.ShowArrows = chkShowArrows.Checked;
+                p.SymmetricDisplay = chkSymmetricDisplay.Checked;
                 p.LastCutTest = chkLastCutTest.Checked;
                 p.Clearance = double.Parse(txtClear.Text, CI);
                 p.FileName = txtFileName.Text;
@@ -479,6 +482,13 @@ namespace gCodeGeneratorWinForms
             float maxZ = _segments.Max(s => Math.Max(s.Start.Y, s.End.Y));
             float minX = _segments.Min(s => Math.Min(s.Start.X, s.End.X));
             float maxX = _segments.Max(s => Math.Max(s.Start.X, s.End.X));
+
+            if (parameters.SymmetricDisplay)
+            {
+                float xExtent = Math.Max(Math.Abs(minX), Math.Abs(maxX));
+                minX = -xExtent;
+                maxX =  xExtent;
+            }
 
             const float labelMarginLeft = 28f;   // px reserved for X-axis (left) labels
             const float labelMarginBottom = 18f; // px reserved for Z-axis (bottom) labels
