@@ -583,11 +583,11 @@ namespace gCodeGeneratorWinForms
             {
                 var profilePoints = new List<PointF>();
 
-                const float extZ = 5f; // extend 5mm to the right of Z=0 to show raw stock
+                // Extend 5mm to the left beyond the part (toward the chuck, negative Z)
+                float extZ = -(float)(parameters.Length + 5.0); // e.g. Length=20 → -25
                 float initR = (float)(parameters.InitialDiameter / 2.0);
 
-                // Raw stock face: top-right corner extended, then Z=0 right face
-                profilePoints.Add(new PointF(initR, extZ));
+                // Start at Z=0 right face — nothing extends to the right of Z=0
                 profilePoints.Add(new PointF(initR, 0));
 
                 // Walk last-pass segments: skip approach moves (Z >= 0), stop at first rapid
@@ -597,8 +597,9 @@ namespace gCodeGeneratorWinForms
                     var seg = _segments[si];
                     if (seg.Type == MoveType.Rapid) break;
 
-                    // Skip approach moves that are still at Z >= 0
-                    if (!rightFeatureStarted && seg.End.Y >= 0) continue;
+                    // Skip approach moves still to the right of Z=0 (positive Z);
+                    // include the move that arrives at Z=0 — that is the vertical right face
+                    if (!rightFeatureStarted && seg.End.Y > 0) continue;
                     rightFeatureStarted = true;
 
                     if (seg.IsArc)
@@ -619,21 +620,32 @@ namespace gCodeGeneratorWinForms
                     }
                 }
 
-                // Close the shape along the centre axis (X=0) back to the extended start
+                // Close shape: step to stock radius, extend into chuck, back along axis to Z=0
                 if (profilePoints.Count > 2)
                 {
                     var lastPt = profilePoints[profilePoints.Count - 1];
-                    profilePoints.Add(new PointF(0, lastPt.Y));  // left end on axis
-                    profilePoints.Add(new PointF(0, extZ));       // along axis to right
+                    profilePoints.Add(new PointF(initR, lastPt.Y)); // step out to stock radius at left end
+                    profilePoints.Add(new PointF(initR, extZ));     // extend into chuck at stock radius
+                    profilePoints.Add(new PointF(0, extZ));         // drop to axis at chuck end
+                    profilePoints.Add(new PointF(0, 0));            // along axis back to Z=0
                 }
 
                 if (profilePoints.Count > 2)
                 {
-                    var screenPts = profilePoints.Select(pt => ToScreen(pt)).ToArray();
                     using var matBrush = new SolidBrush(Color.FromArgb(50, 180, 120, 60));
-                    g.FillPolygon(matBrush, screenPts);
                     using var matPen = new Pen(Color.FromArgb(160, 200, 140, 80), 1.5f);
+
+                    var screenPts = profilePoints.Select(pt => ToScreen(pt)).ToArray();
+                    g.FillPolygon(matBrush, screenPts);
                     g.DrawPolygon(matPen, screenPts);
+
+                    // Mirror below X=0 axis when SymmetricDisplay is on
+                    if (parameters.SymmetricDisplay)
+                    {
+                        var mirroredPts = profilePoints.Select(pt => ToScreen(new PointF(-pt.X, pt.Y))).ToArray();
+                        g.FillPolygon(matBrush, mirroredPts);
+                        g.DrawPolygon(matPen, mirroredPts);
+                    }
                 }
             }
 
