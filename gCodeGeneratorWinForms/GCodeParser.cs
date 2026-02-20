@@ -13,15 +13,40 @@ namespace gCodeGeneratorWinForms
 
 
         // ─── G-CODE PARSER ───────────────────────────────────────────────────
-        public static List<Segment> ParseGCode(string gcode)
+        // Returns the segment list and the index in that list where the last pass begins.
+        // lastPassStartIndex is -1 if no CYCLE comment was found.
+        public static (List<Segment> segments, int lastPassStartIndex) ParseGCode(string gcode)
         {
             var segments = new List<Segment>();
+            int lastPassStartIndex = -1;
             float x = 0, z = 0;
             bool isRapid = false;
 
             foreach (string rawLine in gcode.Split('\n'))
             {
                 string line = rawLine.Trim().ToUpper();
+
+                // Detect last-pass start via ";-) CYCLE:n/total" where n == total
+                if (line.StartsWith(";-) CYCLE:"))
+                {
+                    var cycleStr = line.Substring(10); // e.g. "3/3 DEPTH:..."
+                    var slash = cycleStr.IndexOf('/');
+                    if (slash > 0)
+                    {
+                        var spaceAfter = cycleStr.IndexOf(' ', slash);
+                        var totalStr = spaceAfter > 0
+                            ? cycleStr.Substring(slash + 1, spaceAfter - slash - 1)
+                            : cycleStr.Substring(slash + 1);
+                        var curStr = cycleStr.Substring(0, slash);
+                        if (int.TryParse(curStr, out int cur) &&
+                            int.TryParse(totalStr, out int total) &&
+                            cur == total && total > 0)
+                        {
+                            lastPassStartIndex = segments.Count;
+                        }
+                    }
+                }
+
                 if (line.StartsWith(";") || string.IsNullOrEmpty(line)) continue;
 
                 // Detect rapid / feed mode — check full command carefully
@@ -88,7 +113,7 @@ namespace gCodeGeneratorWinForms
                 x = newX;
                 z = newZ;
             }
-            return segments;
+            return (segments, lastPassStartIndex);
         }
 
         private static bool TryGetVal(string line, char axis, out float val)

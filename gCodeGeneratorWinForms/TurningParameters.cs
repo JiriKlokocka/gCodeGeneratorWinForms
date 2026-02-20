@@ -33,6 +33,7 @@ namespace gCodeGeneratorWinForms
 
         public bool ShowArrows { get; set; } = true;
         public bool SymmetricDisplay { get; set; } = false;
+        public bool ShowMaterial { get; set; } = true;
         [JsonIgnore]
         public bool LastCutTest { get; set; } = false;
 

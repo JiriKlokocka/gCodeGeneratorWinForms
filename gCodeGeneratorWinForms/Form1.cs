@@ -19,6 +19,7 @@ namespace gCodeGeneratorWinForms
         
 
         private List<Segment> _segments = new();
+        private int _lastPassStartIndex = -1;
         private string _gcode = "";
 
         // Use InvariantCulture everywhere so decimal dot works regardless of locale (e.g. Czech)
@@ -67,7 +68,7 @@ namespace gCodeGeneratorWinForms
             TextBox[] texts = { txtLength, txtInitialDiameter, txtTargetDiameter,
                                 txtCut, txtRoughFeed, txtFinishFeed,
                                 txtLeftRadius, txtRightRadius, txtClear, txtFileName };
-            CheckBox[] checks = { chkLeftChamfer, chkRightChamfer, chkAutoRadiuses, chkShowArrows, chkSymmetricDisplay };
+            CheckBox[] checks = { chkLeftChamfer, chkRightChamfer, chkAutoRadiuses, chkShowArrows, chkSymmetricDisplay, chkShowMaterial };
 
             foreach (var t in texts)  t.TextChanged    -= AnyInput_Changed;
             foreach (var c in checks) c.CheckedChanged -= AnyCheck_Changed;
@@ -88,6 +89,7 @@ namespace gCodeGeneratorWinForms
             chkAutoRadiuses.Checked    = p.AutoRadiuses;
             chkShowArrows.Checked        = p.ShowArrows;
             chkSymmetricDisplay.Checked  = p.SymmetricDisplay;
+            chkShowMaterial.Checked      = p.ShowMaterial;
 
             foreach (var t in texts)  t.TextChanged    += AnyInput_Changed;
             foreach (var c in checks) c.CheckedChanged += AnyCheck_Changed;
@@ -298,6 +300,7 @@ namespace gCodeGeneratorWinForms
             AddCheck(chkAutoRadiuses, "Auto left and right radiuses");
             AddCheck(chkShowArrows, "Show arrows in graphic");
             AddCheck(chkSymmetricDisplay, "Symmetric display (Z=0 centred)");
+            AddCheck(chkShowMaterial, "Show material");
             AddCheck(chkLastCutTest, "chkLastCutTest");
             
 
@@ -336,7 +339,7 @@ namespace gCodeGeneratorWinForms
                     txtGCode.SelectionStart = 0;
                     txtGCode.ScrollToCaret();
 
-                    _segments = GCodeParser.ParseGCode(_gcode);
+                    (_segments, _lastPassStartIndex) = GCodeParser.ParseGCode(_gcode);
                     panelViewer.Invalidate();
                 }
                 catch (Exception ex)
@@ -392,6 +395,7 @@ namespace gCodeGeneratorWinForms
                 p.AutoRadiuses = chkAutoRadiuses.Checked;
                 p.ShowArrows = chkShowArrows.Checked;
                 p.SymmetricDisplay = chkSymmetricDisplay.Checked;
+                p.ShowMaterial = chkShowMaterial.Checked;
                 p.LastCutTest = chkLastCutTest.Checked;
                 p.Clearance = double.Parse(txtClear.Text, CI);
                 p.FileName = txtFileName.Text;
@@ -573,6 +577,65 @@ namespace gCodeGeneratorWinForms
             //{
             //    g.FillRectangle(brush, ToScreen(new PointF(maxX + 1, 0)).X - 30, ToScreen(new PointF(0, 0)).Y, 50, 50);
             //}
+
+            // ── Material shape ────────────────────────────────────────────────
+            if (parameters.ShowMaterial && _lastPassStartIndex >= 0 && _segments.Count > 0)
+            {
+                var profilePoints = new List<PointF>();
+
+                const float extZ = 5f; // extend 5mm to the right of Z=0 to show raw stock
+                float initR = (float)(parameters.InitialDiameter / 2.0);
+
+                // Raw stock face: top-right corner extended, then Z=0 right face
+                profilePoints.Add(new PointF(initR, extZ));
+                profilePoints.Add(new PointF(initR, 0));
+
+                // Walk last-pass segments: skip approach moves (Z >= 0), stop at first rapid
+                bool rightFeatureStarted = false;
+                for (int si = _lastPassStartIndex; si < _segments.Count; si++)
+                {
+                    var seg = _segments[si];
+                    if (seg.Type == MoveType.Rapid) break;
+
+                    // Skip approach moves that are still at Z >= 0
+                    if (!rightFeatureStarted && seg.End.Y >= 0) continue;
+                    rightFeatureStarted = true;
+
+                    if (seg.IsArc)
+                    {
+                        double startRad = seg.StartAngle * Math.PI / 180.0;
+                        double sweepRad = seg.SweepAngle * Math.PI / 180.0;
+                        for (int s = 1; s <= 16; s++)
+                        {
+                            double angle = startRad + sweepRad * s / 16.0;
+                            float px = seg.Center.X + seg.Radius * (float)Math.Cos(angle);
+                            float pz = seg.Center.Y + seg.Radius * (float)Math.Sin(angle);
+                            profilePoints.Add(new PointF(px, pz));
+                        }
+                    }
+                    else
+                    {
+                        profilePoints.Add(seg.End);
+                    }
+                }
+
+                // Close the shape along the centre axis (X=0) back to the extended start
+                if (profilePoints.Count > 2)
+                {
+                    var lastPt = profilePoints[profilePoints.Count - 1];
+                    profilePoints.Add(new PointF(0, lastPt.Y));  // left end on axis
+                    profilePoints.Add(new PointF(0, extZ));       // along axis to right
+                }
+
+                if (profilePoints.Count > 2)
+                {
+                    var screenPts = profilePoints.Select(pt => ToScreen(pt)).ToArray();
+                    using var matBrush = new SolidBrush(Color.FromArgb(50, 180, 120, 60));
+                    g.FillPolygon(matBrush, screenPts);
+                    using var matPen = new Pen(Color.FromArgb(160, 200, 140, 80), 1.5f);
+                    g.DrawPolygon(matPen, screenPts);
+                }
+            }
 
             // ── Toolpath ─────────────────────────────────────────────────────
             var arrow = new System.Drawing.Drawing2D.AdjustableArrowCap(4, 4);
