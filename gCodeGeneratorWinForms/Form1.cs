@@ -117,7 +117,11 @@ namespace gCodeGeneratorWinForms
 
             chkLeftChamfer.Checked  = p.LeftSideIsChamfer;
             chkRightChamfer.Checked = p.RightSideIsChamfer;
+            chkLeftSideRadiusIsPositive.Checked = p.LeftSideRadiusIsPositive;
+            chkRightSideRadiusIsPositive.Checked = p.RightSideRadiusIsPositive;
+            chkRightSideRadiusIsInner.Checked = p.RightSideRadiusIsInner;
             chkAutoRadiuses.Checked = p.AutoRadiuses;
+
 
             foreach (var t in texts)  t.TextChanged    += AnyInput_Changed;
             foreach (var c in checks) c.CheckedChanged += AnyCheck_Changed;
@@ -367,11 +371,14 @@ namespace gCodeGeneratorWinForms
             // ─ Left Side ─────────────────────────────────────────────────────
             AddHeader("── Left Side ──");
             AddNumericInputRow("Left Radius (mm)", txtLeftRadius, "5",lblMaxLeftRadius);
+            AddCheck(chkLeftSideRadiusIsPositive, "Positive radius");
             AddCheck(chkLeftChamfer, "Left Chamfer (instead of arc)");
 
             // ─ Right Side ────────────────────────────────────────────────────
             AddHeader("── Right Side ──");
             AddNumericInputRow("+ outer / - inner", txtRightRadius, "5", lblMaxRightRadius);
+            AddCheck(chkRightSideRadiusIsPositive, "Positive radius");
+            AddCheck(chkRightSideRadiusIsInner, "Inner radius");
             AddCheck(chkRightChamfer, "Right Chamfer (instead of arc)");
 
             // ─ Other ─────────────────────────────────────────────────────────
@@ -473,6 +480,9 @@ namespace gCodeGeneratorWinForms
                 p.FinishFeed = double.Parse(txtFinishFeed.Text, CI);
                 p.LeftSideRadius = double.Parse(txtLeftRadius.Text, CI);
                 p.LeftSideIsChamfer = chkLeftChamfer.Checked;
+                p.LeftSideRadiusIsPositive = chkLeftSideRadiusIsPositive.Checked;
+                p.RightSideRadiusIsPositive = chkRightSideRadiusIsPositive.Checked;
+                p.RightSideRadiusIsInner = chkRightSideRadiusIsInner.Checked;
                 p.RightSideRadius = double.Parse(txtRightRadius.Text, CI);
                 p.RightSideIsChamfer = chkRightChamfer.Checked;
                 p.AutoRadiuses = chkAutoRadiuses.Checked;
@@ -486,17 +496,22 @@ namespace gCodeGeneratorWinForms
                 programParameters.OpenFileInIoSender = chkOpenInIoSender.Checked;
 
                 var maxLeftRadius = ((p.InitialDiameter - p.TargetDiameter) / 2);
-                var maxRightRadiusPositive = (p.TargetDiameter / 2);
-                var maxRightRadiusNegative = -((p.InitialDiameter - p.TargetDiameter) / 2);
-
+                double maxRightRadius = 0.0;
+                if (p.RightSideRadiusIsInner)
+                {
+                    maxRightRadius = (p.InitialDiameter - p.TargetDiameter) / 2;
+                } else
+                {
+                    maxRightRadius = (p.InitialDiameter / 2);
+                }
                 //For short parts, the radius cannot be larger than half the length, otherwise it would create a full circle or more
                 if (maxLeftRadius > (p.Length/2)) {
                     maxLeftRadius = (p.Length / 2);
                 }
 
-                if (maxRightRadiusPositive > (p.Length / 2))
+                if (maxRightRadius > (p.Length / 2))
                 {
-                    maxRightRadiusPositive = (p.Length / 2);
+                    maxRightRadius = (p.Length / 2);
                 }
 
                 // If AutoRadiuses is enabled, set left and right radius to maximum possible values based on dimensions, and disable manual input
@@ -504,18 +519,18 @@ namespace gCodeGeneratorWinForms
                 {
                     p.LeftSideRadius = maxLeftRadius;
                     
-                    if(p.RightSideRadius >= 0)
-                        if(maxRightRadiusPositive > maxLeftRadius)
-                        {
-                            p.RightSideRadius = maxLeftRadius;
-                        }else
-                        {
-                            p.RightSideRadius = maxRightRadiusPositive;
-                        }
-                    else
-                    {
-                        p.RightSideRadius = maxRightRadiusNegative;
-                    }
+                    //if(p.RightSideRadius >= 0)
+                    //    if(maxRightRadiusOuter > maxLeftRadius)
+                    //    {
+                    //        p.RightSideRadius = maxLeftRadius;
+                    //    }else
+                    //    {
+                    //        p.RightSideRadius = maxRightRadiusOuter;
+                    //    }
+                    //else
+                    //{
+                    //    p.RightSideRadius = maxRightRadiusNegative;
+                    //}
                     txtLeftRadius.Enabled = false;
                     txtRightRadius.Enabled = false;
                     txtLeftRadius.Text = p.LeftSideRadius.ToString(CI);
@@ -526,7 +541,7 @@ namespace gCodeGeneratorWinForms
                 }
 
                 lblMaxLeftRadius.Text = $"(max: {maxLeftRadius:0.###})";   
-                lblMaxRightRadius.Text = $"(max: {maxRightRadiusPositive:0.###} / {maxRightRadiusNegative:0.###})";
+                lblMaxRightRadius.Text = $"(max: {maxRightRadius:0.###})";
 
                 return true;
             }

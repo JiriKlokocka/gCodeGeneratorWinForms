@@ -19,12 +19,15 @@ namespace gCodeGeneratorWinForms
         public double FinishFeed { get; set; } = 150;
 
         public double LeftSideRadius { get; set; } = 5.0;  // Abs cannot be greater than depth
+        public bool LeftSideRadiusIsPositive { get; set; }
         public bool LeftSideIsChamfer { get; set; } = false; // true = chamfer instead of arc
 
         // RightRadius: positive = outer radius, negative = inner radius
         // if positive  → cannot be greater than targetDiameter / 2
         // if negative  → absolute value cannot be greater than depth
         public double RightSideRadius { get; set; } = 5.0;
+        public bool RightSideRadiusIsPositive { get; set; }
+        public bool RightSideRadiusIsInner { get; set; }
         public bool RightSideIsChamfer { get; set; } = false;
         public bool AutoRadiuses { get; set; } = false;
         public double Clearance { get; set; } = 5.0;

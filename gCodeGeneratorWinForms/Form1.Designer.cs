@@ -27,6 +27,9 @@
             txtRoughFeed = new TextBox();
             txtFinishFeed = new TextBox();
             txtLeftRadius = new TextBox();
+            chkLeftSideRadiusIsPositive = new CheckBox();
+            chkRightSideRadiusIsPositive = new CheckBox();
+            chkRightSideRadiusIsInner = new CheckBox();
             lblMaxRightRadius = new Label();
             lblMaxLeftRadius = new Label();
             txtRightRadius = new TextBox();
@@ -276,6 +279,27 @@
             chkOpenInIoSender.Size = new Size(104, 24);
             chkOpenInIoSender.TabIndex = 0;
             //
+            // chkLeftSideRadiusIsPositive
+            //
+            chkLeftSideRadiusIsPositive.Location = new Point(0, 0);
+            chkLeftSideRadiusIsPositive.Name = "chkLeftSideRadiusIsPositive";
+            chkLeftSideRadiusIsPositive.Size = new Size(104, 24);
+            chkLeftSideRadiusIsPositive.TabIndex = 0;
+            //
+            // chkRightSideRadiusIsPositive
+            //
+            chkRightSideRadiusIsPositive.Location = new Point(0, 0);
+            chkRightSideRadiusIsPositive.Name = "chkRightSideRadiusIsPositive";
+            chkRightSideRadiusIsPositive.Size = new Size(104, 24);
+            chkRightSideRadiusIsPositive.TabIndex = 0;
+            //
+            // chkRightSideRadiusIsInner
+            //
+            chkRightSideRadiusIsInner.Location = new Point(0, 0);
+            chkRightSideRadiusIsInner.Name = "chkRightSideRadiusIsInner";
+            chkRightSideRadiusIsInner.Size = new Size(104, 24);
+            chkRightSideRadiusIsInner.TabIndex = 0;
+            //
             // Form1
             // 
             BackColor = Color.FromArgb(37, 37, 38);
@@ -306,6 +330,7 @@
         private TextBox txtCut, txtRoughFeed, txtFinishFeed;
         private TextBox txtLeftRadius, txtRightRadius, txtClear, txtFileName, txtIoSenderPath;
         private CheckBox chkLeftChamfer, chkRightChamfer, chkAutoRadiuses, chkShowArrows, chkLastCutTest, chkSymmetricDisplay, chkShowMaterial, chkOpenInIoSender;
+        private CheckBox chkLeftSideRadiusIsPositive, chkRightSideRadiusIsPositive, chkRightSideRadiusIsInner;
         private Label lblMaxLeftRadius, lblMaxRightRadius;
     }
 }

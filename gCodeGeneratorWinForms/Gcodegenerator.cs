@@ -41,7 +41,7 @@ namespace gCodeGeneratorWinForms
             for (int i = 0; i <= mainSteps; i++)
             {
                 double act = i * cut;
-                if (depth - act < Math.Abs(p.LeftSideRadius))
+                if (depth - act < p.LeftSideRadius)
                 {
                     leftOffset = Math.Abs(act - depth) + cut;
                     break;
@@ -86,24 +86,26 @@ namespace gCodeGeneratorWinForms
                 // ══════════════════════════════════════════════════════════════
                 // RIGHT SIDE — OUTER RADIUS or CHAMFER
                 // ══════════════════════════════════════════════════════════════
-                if (p.RightSideRadius > 0)
+                if (!p.RightSideRadiusIsInner)
                 {
                     var arcXStart = initialRadius - (actDepth + ((i + 1) * rightRadiusFraction));
                     var arcXEnd = initialRadius - actDepth;
                     var arcZEnd = -((i + 1) * rightRadiusFraction);
-                    /*if(arcXStart < 0)
-                    {
-                        arcZEnd += arcXStart; // Reduce arcZEnd by the amount arcXStart is below 0
-                        arcXEnd -= arcXStart; // Reduce arcXEnd by the amount arcXStart is below 0
-                        arcXStart = 0;
-                    }*/
                     //TODO: Handle bigger arc radii
                     if (!p.RightSideIsChamfer)
                     {
                         W(";-) Right Outer Radius");
                         W($"g1 x{R(arcXStart)}");
                         W("g1 z0");
-                        W($"G03 z{R(arcZEnd)} x{R(arcXEnd)} I0 K{R(-((i + 1) * rightRadiusFraction))}");
+                        if(p.RightSideRadiusIsPositive)
+                        {
+
+                            W($"G02 z{R(arcZEnd)} x{R(arcXEnd)} I{R(((i + 1) * rightRadiusFraction))} K0");
+                        }
+                        else
+                        {
+                            W($"G03 z{R(arcZEnd)} x{R(arcXEnd)} I0 K{R(-((i + 1) * rightRadiusFraction))}");
+                        }
                     }
                     else
                     {
@@ -116,7 +118,7 @@ namespace gCodeGeneratorWinForms
                 // ══════════════════════════════════════════════════════════════
                 // RIGHT SIDE — INNER RADIUS or CHAMFER
                 // ══════════════════════════════════════════════════════════════
-                else if (p.RightSideRadius < 0)
+                else if(p.RightSideRadiusIsInner) 
                 {
                     double rightInnerRadius = Math.Abs(p.RightSideRadius);
 
@@ -127,13 +129,20 @@ namespace gCodeGeneratorWinForms
                         W($"g1 z{R(-(rightOffset - (n * cut)))}");
                         W($"g1 x{R(initialRadius - (depth - rightInnerRadius))}"); // arc start point
 
-                        if (!p.RightSideIsChamfer)
+                        if (p.RightSideIsChamfer)
                         {
-                            W($"G02 z{R(-rightInnerRadius)} x{R(initialRadius - actDepth)} I0 K{R((rightOffset - (n * cut)) - rightInnerRadius)}");
+                            W($"G01 z{R(-rightInnerRadius)} x{R(initialRadius - actDepth)}");
                         }
                         else
                         {
-                            W($"G01 z{R(-rightInnerRadius)} x{R(initialRadius - actDepth)}");
+                            if (p.RightSideRadiusIsPositive)
+                            {
+                                W($"G03 z{R(-rightInnerRadius)} x{R(initialRadius - actDepth)} I{R((rightOffset - (n * cut)) - rightInnerRadius)} K0");
+                            }
+                            else
+                            {
+                                W($"G02 z{R(-rightInnerRadius)} x{R(initialRadius - actDepth)} I0 K{R((rightOffset - (n * cut)) - rightInnerRadius)}");
+                            }
                         }
                         n++;
                     }
@@ -158,25 +167,25 @@ namespace gCodeGeneratorWinForms
                 // ══════════════════════════════════════════════════════════════
                 W(";-) Left Radius or Chamfer");
 
-                if (depth - actDepth < Math.Abs(p.LeftSideRadius))
+                if (depth - actDepth < p.LeftSideRadius)
                 {
-                    var leftArcStartPoint = -(p.Length - Math.Abs(p.LeftSideRadius));
+                    var leftArcStartPoint = -(p.Length - p.LeftSideRadius);
                     //leftArcStartPoint += (((mainSteps - i) * (cut))); // Shift arc start point for better toolpath on bigger radii
                     W($"g1 z{R(leftArcStartPoint )}"); // arc start point
               
                     if (p.LeftSideIsChamfer)
                     {
-                        W($"G01 z{R(-(p.Length - leftOffset + (m * cut)))} x{R(initialRadius - (depth - Math.Abs(p.LeftSideRadius)))}");
+                        W($"G01 z{R(-(p.Length - leftOffset + (m * cut)))} x{R(initialRadius - (depth - p.LeftSideRadius))}");
                     }
                     else
                     {
-                        if(p.LeftSideRadius >= 0)
+                        if(p.LeftSideRadiusIsPositive)
                         {
-                            W($"G02 z{R(-(p.Length - leftOffset + (m * cut)))} x{R(initialRadius - (depth - p.LeftSideRadius))} I{R(actDepth - (depth - p.LeftSideRadius))} K0");
+                            W($"G03 z{R(-(p.Length - leftOffset + (m * cut)))} x{R(initialRadius - (depth - p.LeftSideRadius))} I0 K{R(-(actDepth - (depth - p.LeftSideRadius)))}");
                         }
                         else
                         {
-                            W($"G03 z{R(-(p.Length - leftOffset + (m * cut)))} x{R(initialRadius - (depth - Math.Abs(p.LeftSideRadius)))} I0 K{R(-(actDepth - (depth - Math.Abs(p.LeftSideRadius))))}");
+                            W($"G02 z{R(-(p.Length - leftOffset + (m * cut)))} x{R(initialRadius - (depth - p.LeftSideRadius))} I{R(actDepth - (depth - p.LeftSideRadius))} K0");
                         }
                     }
                     m++;
