@@ -502,7 +502,7 @@ namespace gCodeGeneratorWinForms
                     maxRightRadius = (p.InitialDiameter - p.TargetDiameter) / 2;
                 } else
                 {
-                    maxRightRadius = (p.InitialDiameter / 2);
+                    maxRightRadius = (p.TargetDiameter / 2);
                 }
                 //For short parts, the radius cannot be larger than half the length, otherwise it would create a full circle or more
                 if (maxLeftRadius > (p.Length/2)) {
@@ -518,6 +518,7 @@ namespace gCodeGeneratorWinForms
                 if (p.AutoRadiuses)
                 {
                     p.LeftSideRadius = maxLeftRadius;
+                    p.RightSideRadius = maxRightRadius;
                     
                     //if(p.RightSideRadius >= 0)
                     //    if(maxRightRadiusOuter > maxLeftRadius)
